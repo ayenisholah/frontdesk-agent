@@ -15,7 +15,7 @@ There are 14 sessions of about 60 minutes each. Each session closes specific req
 
 PRD, requirements, design system with tokens, this build plan, and SPEC updated for OpenAI.
 
-## Day 1 (Mon 2 Nov): monorepo skeleton and CI
+## Day 1 (Sun 1 Nov, moved up): monorepo skeleton and CI ✅
 - **Closes:** NFR-8 (token pipeline), NFR-10 (CI), NFR-11 (compose)
 - **Build:** npm workspaces (`apps/api`, `apps/worker`, `apps/dashboard`, `packages/core`, `packages/agent`, `packages/channels`, `packages/db`); TypeScript strict; ESLint and Prettier; Vitest; `docker-compose.yml` with Postgres 16 and Redis 7. Port the token scripts from PPP: `build-tokens.ts`, `audit-contrast.ts`, `audit-units.mjs`. GitHub Actions for lint, typecheck, test, `tokens --check` and `audit:units`.
 - **Ask first:** `git init` and creating the GitHub repo (public or private).
@@ -52,7 +52,7 @@ PRD, requirements, design system with tokens, this build plan, and SPEC updated 
 - **Before:** a Meta developer app and WhatsApp test number (your account).
 - **Done when:** integration tests for signature, dedupe, ordering and retry pass, and a local tunnel lets you chat from your phone.
 
-## Day 8 (Mon 9 Nov): deploy
+## Day 8 (Mon 9 Nov): deploy (pipeline done early on Day 1; WhatsApp-facing checks remain)
 - **Closes:** NFR-11
 - **Build:** a deploy workflow to the demo server (port 3110, a systemd unit or container), using the provision flow from earlier demos. The health check covers the API, worker, Redis and Postgres.
 - **Needs you:** a DNS A record for `frontdesk.sholaayeni.xyz`, and running the provision script with sudo in your own terminal.
@@ -112,6 +112,12 @@ diff <(grep -oE '\b(FR|NFR|GR|EV)-[A-Z0-9-]*[0-9]\b' docs/REQUIREMENTS.md | sort
 ## Session log (newest first)
 
 ```
+### 2026-11-01 — Day 1
+Shipped: npm workspaces (apps/api, worker, dashboard; packages/core, agent, channels, db). API with /healthz and /readyz (Postgres, Redis), Zod config, JSON logs, graceful shutdown. Design system CSS on Frontdesk tokens: ported PPP layers, plus status badges, thread and trace patterns, and brand/highlight tokens. Hardened Dockerfile, compose files. CI with lint, typecheck, 16 tests, token audits, npm audit, gitleaks, image smoke test, and deploy over a forced-command SSH key with rollback. Public repo https://github.com/ayenisholah/frontdesk-agent with secret scanning and push protection. Server: freed 13.7 GB (95% → 61% used), bootstrapped ~/frontdesk.
+Evals: none yet.
+Blockers: the deploy key's authorized_keys line must be added by the owner; DNS A record for frontdesk.sholaayeni.xyz; one sudo session for setup-host, reclaim-system and teardown-demos.
+Tomorrow's first step: Day 2, the Prisma schema and config schema.
+
 ### 2026-11-01 — Session 0
 Shipped: PRD, REQUIREMENTS (FR/NFR/GR/EV with acceptance checks), DESIGN_SYSTEM + design/tokens.ts + design/fluid.ts (all 32 contrast pairs pass in both themes, no px), BUILD_PLAN, SPEC switched to OpenAI.
 Evals: none yet.
