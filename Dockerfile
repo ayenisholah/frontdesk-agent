@@ -2,7 +2,7 @@
 # Frontdesk API image. Built in CI with VCS_REF=<full git sha>; the deploy script refuses
 # an image whose revision label doesn't match the SHA it was asked to deploy.
 
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
@@ -17,13 +17,13 @@ COPY tsconfig.base.json ./
 COPY apps/api apps/api
 RUN npm run build -w @frontdesk/api
 
-FROM node:24-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 COPY --from=build /src/package.json /src/package-lock.json ./
 COPY --from=build /src/apps/api/package.json apps/api/
 RUN npm ci --omit=dev --ignore-scripts -w @frontdesk/api && npm cache clean --force
 
-FROM node:24-alpine AS runtime
+FROM node:26-alpine AS runtime
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.title="frontdesk-api" \
       org.opencontainers.image.source="https://github.com/ayenisholah/frontdesk-agent" \
