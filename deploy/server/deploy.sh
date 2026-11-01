@@ -20,7 +20,7 @@ case "${action:-}" in
   status)
     body=$(ready) || { echo "not ready"; exit 1; }
     echo "$body"
-    grep -q "\"release\":\"$sha\"" <<<"$body" || { echo "live release differs"; exit 1; }
+    [[ "$body" == *"\"release\":\"$sha\""* ]] || { echo "live release differs"; exit 1; }
     exit 0 ;;
   deploy) ;;
   *) say "refused: unknown action"; exit 2 ;;
@@ -44,7 +44,8 @@ say "deploy $sha: starting (previous ${previous:-none})"
 up "$sha"
 healthy=0
 for _ in $(seq 1 30); do
-  if ready 2>/dev/null | grep -q "\"release\":\"$sha\""; then healthy=1; break; fi
+  body=$(ready 2>/dev/null || true)
+  if [[ "$body" == *"\"release\":\"$sha\""* ]]; then healthy=1; break; fi
   sleep 2
 done
 
@@ -60,6 +61,7 @@ fi
 
 printf '%s\n' "$sha" > "$root/current-sha"
 # Keep the three newest API images; never remove the live one.
-docker image ls frontdesk-api --format '{{.Tag}}' | grep -E '^[a-f0-9]{40}$' | grep -vx "$sha" | tail -n +3 |
+# (`|| true`: with one or two images the filters match nothing, which isn't an error.)
+{ docker image ls frontdesk-api --format '{{.Tag}}' | grep -E '^[a-f0-9]{40}$' | grep -vx "$sha" | tail -n +3 || true; } |
   while read -r old; do docker image rm "frontdesk-api:$old" >/dev/null 2>&1 || true; done
 say "deploy $sha: live and ready"
