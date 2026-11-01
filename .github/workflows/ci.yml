@@ -1,0 +1,101 @@
+name: CI and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run audit:tokens
+      - run: npm run audit:units
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Scan for committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  image:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image for this exact commit
+        run: docker build --build-arg VCS_REF=${{ github.sha }} -t frontdesk-api:${{ github.sha }} .
+      - name: Smoke test /healthz
+        run: |
+          docker run -d --name smoke -p 127.0.0.1:3110:3110 \
+            -e DATABASE_URL=postgresql://u:p@127.0.0.1:1/db -e REDIS_URL=redis://127.0.0.1:1 \
+            frontdesk-api:${{ github.sha }}
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:3110/healthz && exit 0; sleep 1; done
+          docker logs smoke; exit 1
+      - name: Check revision label
+        run: |
+          label=$(docker image inspect frontdesk-api:${{ github.sha }} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')
+          test "$label" = "${{ github.sha }}"
+      - name: Export image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: docker save frontdesk-api:${{ github.sha }} | gzip -6 > image.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: frontdesk-api-image
+          path: image.tar.gz
+          retention-days: 3
+
+  deploy:
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontdesk-api-image
+      - name: Configure the restricted deploy key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+      - name: Stream image and deploy
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            runner@74.50.118.87 "deploy ${{ github.sha }}" < image.tar.gz
+      - name: Confirm the live release
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            runner@74.50.118.87 "status ${{ github.sha }}"
+      - name: Remove key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

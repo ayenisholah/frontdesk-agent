@@ -1,0 +1,311 @@
+// Single source of truth for the Frontdesk design system.
+// `npm run tokens` writes the dashboard's styles/tokens.css from this file (generator: ./fluid.ts).
+// Edit values here, never in the generated CSS. See docs/DESIGN_SYSTEM.md.
+//
+// Units: colours are hex. Every size is rem, em or %. The vw term inside clamp() is the only
+// viewport unit in the system. No px anywhere (checked by `npm run audit:units`).
+
+export const palette = {
+  // Lagoon: deep teal. Brand primary. Calm and trustworthy, distinct from WhatsApp green.
+  lagoon: {
+    50: "#eef8f7",
+    100: "#d5eeeb",
+    200: "#a9dcd6",
+    300: "#74c2ba",
+    400: "#43a197",
+    500: "#26827a",
+    600: "#1b6a63",
+    700: "#165550",
+    800: "#123f3c",
+    900: "#0c2b29",
+  },
+  // Slate: cool neutrals for text, borders and surfaces.
+  slate: {
+    50: "#f7f8fa",
+    100: "#eef0f3",
+    200: "#d9dde3",
+    300: "#bcc3cc",
+    400: "#8d96a3",
+    500: "#69727f",
+    600: "#4f5763",
+    700: "#3a414b",
+    800: "#262b33",
+    900: "#171b21",
+    950: "#0f1216",
+  },
+  // Status ramps. 100 = soft background, 700 = text on light, 300 = text on dark.
+  green: { 100: "#e1f3e8", 300: "#86cfa2", 500: "#3f9a63", 700: "#22663f" },
+  amber: { 100: "#fcf0d6", 300: "#ecc46c", 500: "#c8880f", 700: "#7a5100" },
+  red: { 100: "#fbe4e4", 300: "#f09a9a", 500: "#d04545", 700: "#a12626" },
+  blue: { 100: "#e1ecfa", 300: "#98bdeb", 500: "#3d78c2", 700: "#24538f" },
+  violet: { 100: "#ece6fa", 300: "#bba7ef", 500: "#7454c8", 700: "#523599" },
+  white: "#ffffff",
+} as const;
+
+type Ref = string;
+// Semantic roles. Components use only these, so a theme swaps by remapping them.
+// The conversation and booking states are part of the semantics: every status badge,
+// list marker and timeline dot in the dashboard reads from these names.
+export const semantic: Record<"light" | "dark", Record<string, Ref>> = {
+  light: {
+    "bg": palette.slate[50],
+    "bg-subtle": palette.slate[100],
+    "surface": palette.white,
+    "surface-raised": palette.white,
+    "surface-sunken": palette.slate[100],
+    "surface-inverse": palette.slate[900],
+    "text": palette.slate[900],
+    "text-muted": palette.slate[600],
+    "text-subtle": palette.slate[500],
+    "text-inverse": palette.slate[50],
+    "border": palette.slate[200],
+    "border-strong": palette.slate[500],
+    "accent": palette.lagoon[700],
+    "accent-hover": palette.lagoon[800],
+    "accent-soft": palette.lagoon[50],
+    "accent-contrast": palette.white,
+    "success": palette.green[700],
+    "success-soft": palette.green[100],
+    "warning": palette.amber[700],
+    "warning-soft": palette.amber[100],
+    "danger": palette.red[700],
+    "danger-soft": palette.red[100],
+    "info": palette.blue[700],
+    "info-soft": palette.blue[100],
+    "focus": palette.lagoon[500],
+    // Highlight: selection, focus glow, "new" markers.
+    "highlight": palette.lagoon[300],
+    "highlight-soft": palette.lagoon[100],
+    "highlight-text": palette.lagoon[800],
+    // Brand band: stays lagoon in both themes (sign-in panel, onboarding strip).
+    "brand": palette.lagoon[800],
+    "brand-strong": palette.lagoon[900],
+    "on-brand": palette.white,
+    "on-brand-muted": palette.lagoon[100],
+    "on-brand-accent": palette.lagoon[200],
+    // Message bubbles in the conversation view.
+    "bubble-customer": palette.white,
+    "bubble-agent": palette.lagoon[50],
+    "bubble-owner": palette.violet[100],
+    "bubble-system": palette.slate[100],
+    // Conversation states: who is answering this thread right now.
+    "state-agent": palette.lagoon[700],
+    "state-agent-soft": palette.lagoon[50],
+    "state-owner": palette.violet[700],
+    "state-owner-soft": palette.violet[100],
+    "state-closed": palette.slate[600],
+    "state-closed-soft": palette.slate[100],
+    // Booking states.
+    "booking-pending": palette.amber[700],
+    "booking-pending-soft": palette.amber[100],
+    "booking-confirmed": palette.green[700],
+    "booking-confirmed-soft": palette.green[100],
+    "booking-cancelled": palette.red[700],
+    "booking-cancelled-soft": palette.red[100],
+    "booking-completed": palette.blue[700],
+    "booking-completed-soft": palette.blue[100],
+    "booking-no-show": palette.slate[700],
+    "booking-no-show-soft": palette.slate[200],
+  },
+  dark: {
+    "bg": palette.slate[950],
+    "bg-subtle": palette.slate[900],
+    "surface": "#1b2027",
+    "surface-raised": "#232932",
+    "surface-sunken": "#12161b",
+    "surface-inverse": palette.slate[100],
+    "text": palette.slate[100],
+    "text-muted": palette.slate[300],
+    "text-subtle": palette.slate[400],
+    "text-inverse": palette.slate[900],
+    "border": "#323a45",
+    "border-strong": palette.slate[400],
+    "accent": palette.lagoon[300],
+    "accent-hover": palette.lagoon[200],
+    "accent-soft": "#16302e",
+    "accent-contrast": palette.lagoon[900],
+    "success": palette.green[300],
+    "success-soft": "#173022",
+    "warning": palette.amber[300],
+    "warning-soft": "#352a10",
+    "danger": palette.red[300],
+    "danger-soft": "#3a1a1c",
+    "info": palette.blue[300],
+    "info-soft": "#172a40",
+    "focus": palette.lagoon[300],
+    "highlight": palette.lagoon[400],
+    "highlight-soft": "#1d3b38",
+    "highlight-text": palette.lagoon[200],
+    "brand": palette.lagoon[800],
+    "brand-strong": palette.lagoon[900],
+    "on-brand": palette.white,
+    "on-brand-muted": palette.lagoon[100],
+    "on-brand-accent": palette.lagoon[200],
+    "bubble-customer": "#232932",
+    "bubble-agent": "#16302e",
+    "bubble-owner": "#2a2340",
+    "bubble-system": "#1b2027",
+    "state-agent": palette.lagoon[300],
+    "state-agent-soft": "#16302e",
+    "state-owner": palette.violet[300],
+    "state-owner-soft": "#2a2340",
+    "state-closed": palette.slate[300],
+    "state-closed-soft": "#262b33",
+    "booking-pending": palette.amber[300],
+    "booking-pending-soft": "#352a10",
+    "booking-confirmed": palette.green[300],
+    "booking-confirmed-soft": "#173022",
+    "booking-cancelled": palette.red[300],
+    "booking-cancelled-soft": "#3a1a1c",
+    "booking-completed": palette.blue[300],
+    "booking-completed-soft": "#172a40",
+    "booking-no-show": palette.slate[300],
+    "booking-no-show-soft": "#262b33",
+  },
+};
+
+// Text/background pairs that must reach WCAG AA (4.5:1 for text, 3:1 for large text and UI).
+// `npm run audit:tokens` checks every pair in both themes.
+export const contrastPairs: Array<[fg: string, bg: string, min: number]> = [
+  ["text", "bg", 4.5],
+  ["text", "surface", 4.5],
+  ["text", "bg-subtle", 4.5],
+  ["text-muted", "bg", 4.5],
+  ["text-muted", "surface", 4.5],
+  ["text-muted", "bg-subtle", 4.5],
+  ["text-subtle", "surface", 4.5],
+  ["text-inverse", "surface-inverse", 4.5],
+  ["accent", "surface", 4.5],
+  ["accent", "bg", 4.5],
+  ["accent", "accent-soft", 4.5],
+  ["accent-contrast", "accent", 4.5],
+  ["accent-contrast", "accent-hover", 4.5],
+  ["success", "success-soft", 4.5],
+  ["warning", "warning-soft", 4.5],
+  ["danger", "danger-soft", 4.5],
+  ["info", "info-soft", 4.5],
+  ["danger", "surface", 4.5],
+  ["border-strong", "surface", 3],
+  ["focus", "surface", 3],
+  ["highlight-text", "highlight-soft", 4.5],
+  ["on-brand", "brand", 4.5],
+  ["on-brand-muted", "brand", 4.5],
+  ["on-brand-accent", "brand", 4.5],
+  ["on-brand", "brand-strong", 4.5],
+  // Brand scopes remap accent → on-brand-accent and accent-contrast → brand-strong.
+  ["brand-strong", "on-brand-accent", 4.5],
+  ["text", "bubble-customer", 4.5],
+  ["text", "bubble-agent", 4.5],
+  ["text", "bubble-owner", 4.5],
+  ["text", "bubble-system", 4.5],
+  ["state-agent", "state-agent-soft", 4.5],
+  ["state-owner", "state-owner-soft", 4.5],
+  ["state-closed", "state-closed-soft", 4.5],
+  ["booking-pending", "booking-pending-soft", 4.5],
+  ["booking-confirmed", "booking-confirmed-soft", 4.5],
+  ["booking-cancelled", "booking-cancelled-soft", 4.5],
+  ["booking-completed", "booking-completed-soft", 4.5],
+  ["booking-no-show", "booking-no-show-soft", 4.5],
+];
+
+// Fluid scales between a 20rem and an 80rem viewport. The dashboard is dense, so the
+// type ratio is tighter than a marketing site's.
+export const viewport = { min: 20, max: 80 } as const;
+export const typeScale = {
+  base: { min: 0.9375, max: 1 },
+  ratio: { min: 1.15, max: 1.2 },
+  steps: [-2, -1, 0, 1, 2, 3, 4, 5],
+} as const;
+// Space multipliers of the fluid base.
+export const spaceScale = {
+  "3xs": 0.25,
+  "2xs": 0.5,
+  xs: 0.75,
+  s: 1,
+  m: 1.5,
+  l: 2,
+  xl: 3,
+  "2xl": 4,
+  "3xl": 6,
+} as const;
+export const spacePairs = [
+  ["2xs", "s"],
+  ["xs", "m"],
+  ["s", "l"],
+  ["m", "xl"],
+  ["l", "2xl"],
+  ["xl", "3xl"],
+] as const;
+
+export const fonts = {
+  display: { family: "Inter Tight", fallback: "system-ui, -apple-system, 'Segoe UI', sans-serif" },
+  text: { family: "Inter", fallback: "system-ui, -apple-system, 'Segoe UI', sans-serif" },
+  mono: { family: "JetBrains Mono", fallback: "ui-monospace, 'SFMono-Regular', Menlo, monospace" },
+} as const;
+
+// Static (non-fluid) tokens, emitted verbatim. All rem/em/%.
+export const fixed: Record<string, string> = {
+  "weight-regular": "400",
+  "weight-medium": "500",
+  "weight-semibold": "600",
+  "weight-bold": "700",
+  "weight-heavy": "800",
+  "leading-tight": "1.15",
+  "leading-snug": "1.3",
+  "leading-normal": "1.5",
+  "tracking-tight": "-0.015em",
+  "tracking-normal": "0",
+  "tracking-caps": "0.08em",
+  "measure-narrow": "40ch",
+  "measure": "65ch",
+  "measure-wide": "80ch",
+  // Layout
+  "width-prose": "42rem",
+  "width-content": "80rem",
+  "width-wide": "90rem",
+  "width-sidebar": "16rem",
+  "width-list": "22rem",
+  "width-detail": "26rem",
+  "gutter": "clamp(1rem, 0.6667rem + 1.6667vw, 2rem)",
+  // Radii
+  "radius-xs": "0.25rem",
+  "radius-s": "0.375rem",
+  "radius-m": "0.625rem",
+  "radius-l": "1rem",
+  "radius-bubble": "1.125rem",
+  "radius-pill": "999rem",
+  "radius-round": "50%",
+  // Borders
+  "border-hairline": "0.0625rem",
+  "border-thick": "0.125rem",
+  "border-heavy": "0.1875rem",
+  // Controls: 2.75rem meets the minimum touch target
+  "control-s": "2rem",
+  "control-m": "2.75rem",
+  "control-l": "3.25rem",
+  "icon-s": "1em",
+  "icon-m": "1.25em",
+  "icon-l": "1.5em",
+  // Elevation (rem offsets; slate-900 shadows)
+  "shadow-s": "0 0.0625rem 0.125rem rgb(23 27 33 / 6%), 0 0.0625rem 0.1875rem rgb(23 27 33 / 8%)",
+  "shadow-m": "0 0.25rem 0.75rem rgb(23 27 33 / 8%), 0 0.125rem 0.25rem rgb(23 27 33 / 6%)",
+  "shadow-l": "0 1rem 2.5rem rgb(23 27 33 / 14%), 0 0.25rem 0.75rem rgb(23 27 33 / 8%)",
+  "focus-ring-width": "0.1875rem",
+  "focus-ring-offset": "0.125rem",
+  // Motion (respect prefers-reduced-motion in base.css)
+  "duration-fast": "120ms",
+  "duration-base": "200ms",
+  "duration-slow": "320ms",
+  "ease-out": "cubic-bezier(0.22, 1, 0.36, 1)",
+  "ease-in-out": "cubic-bezier(0.65, 0, 0.35, 1)",
+  // Layers
+  "z-base": "0",
+  "z-raised": "10",
+  "z-sticky": "100",
+  "z-overlay": "1000",
+  "z-modal": "1100",
+  "z-toast": "1200",
+};
+
+// Media-query breakpoints, in em so they follow the user's font size.
+export const breakpoints = { sm: "30em", md: "48em", lg: "64em", xl: "80em" } as const;

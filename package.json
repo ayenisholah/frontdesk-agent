@@ -1,0 +1,38 @@
+{
+  "name": "frontdesk-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An AI front desk on WhatsApp for appointment-based small businesses: quotes, books, takes deposits, reminds, and hands off to the owner.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @frontdesk/api",
+    "build": "npm run build -w @frontdesk/api",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "tokens": "tsx scripts/build-tokens.ts",
+    "audit:tokens": "tsx scripts/build-tokens.ts --check && tsx scripts/audit-contrast.ts",
+    "audit:units": "node scripts/audit-units.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^4.1.12"
+  }
+}
