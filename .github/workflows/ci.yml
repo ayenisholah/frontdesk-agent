@@ -59,7 +59,7 @@ jobs:
       - name: Export image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: docker save frontdesk-api:${{ github.sha }} | gzip -6 > image.tar.gz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           name: frontdesk-api-image
