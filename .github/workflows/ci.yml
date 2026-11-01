@@ -33,7 +33,7 @@ jobs:
       - run: npm run audit:units
       - run: npm audit --omit=dev --audit-level=high
       - name: Scan for committed secrets
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
