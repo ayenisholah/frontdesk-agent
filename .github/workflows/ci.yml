@@ -32,10 +32,8 @@ jobs:
       - run: npm run audit:tokens
       - run: npm run audit:units
       - run: npm audit --omit=dev --audit-level=high
-      - name: Scan for committed secrets
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Scan full history for committed secrets
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.24.3 git /repo --no-banner --redact
 
   image:
     needs: verify
