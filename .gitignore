@@ -8,3 +8,4 @@ coverage/
 *.key
 release.tar.gz
 .DS_Store
+packages/db/src/generated/

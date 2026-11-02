@@ -17,6 +17,20 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: frontdesk
+          POSTGRES_USER: frontdesk
+          POSTGRES_PASSWORD: frontdesk-ci-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U frontdesk -d frontdesk"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      # Throwaway CI database; the DB integration tests run against it instead of being skipped.
+      DATABASE_URL: postgresql://frontdesk:frontdesk-ci-only@127.0.0.1:5432/frontdesk
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,9 +40,14 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      - run: npm run db:deploy
+      - name: Tests (unit + DB integration)
+        run: npm test
+      - name: Seed is idempotent
+        run: npm run db:seed && npm run db:seed
       - run: npm run audit:tokens
       - run: npm run audit:units
       - run: npm audit --omit=dev --audit-level=high

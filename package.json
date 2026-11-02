@@ -15,6 +15,10 @@
   "scripts": {
     "dev:api": "npm run dev -w @frontdesk/api",
     "build": "npm run build -w @frontdesk/api",
+    "db:generate": "npm run generate -w @frontdesk/db",
+    "db:migrate": "npm run migrate -w @frontdesk/db",
+    "db:deploy": "npm run deploy -w @frontdesk/db",
+    "db:seed": "npm run seed -w @frontdesk/db",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

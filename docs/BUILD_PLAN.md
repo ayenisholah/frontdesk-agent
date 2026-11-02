@@ -21,7 +21,7 @@ PRD, requirements, design system with tokens, this build plan, and SPEC updated 
 - **Ask first:** `git init` and creating the GitHub repo (public or private).
 - **Done when:** `docker compose up -d && npm test` is green locally and in CI.
 
-## Day 2 (Tue 3 Nov): data model and config
+## Day 2 (Mon 2 Nov, moved up): data model and config ✅
 - **Closes:** FR-CF-1
 - **Build:** the Prisma schema from SPEC (`Business`, `Service`, `OpeningHours`, `Customer`, `Conversation`, `Message`, `Hold`, `Booking`, `Payment`, `AgentRun`, `AgentStep`); a Zod business-config schema; a seed fixture for the pilot groomer, adapted from PPP's services and policies.
 - **Done when:** migrations apply, the seed loads, and invalid-config unit tests fail as expected.
@@ -112,6 +112,12 @@ diff <(grep -oE '\b(FR|NFR|GR|EV)-[A-Z0-9-]*[0-9]\b' docs/REQUIREMENTS.md | sort
 ## Session log (newest first)
 
 ```
+### 2026-11-02 — Day 2
+Shipped: Prisma 7.10.1 (pinned; npm's `latest` tag points at 8.0 RC) with the pg driver adapter and prisma.config.ts. Schema: Business, Service, OpeningHours, Customer, Conversation, Message, Hold, Booking, Payment, AgentRun, AgentStep; integer cents, timestamptz, Message unique on (channel, providerMessageId) for NFR-2. First migration `init`. `@frontdesk/core` businessConfigSchema (Zod 4): IANA timezone, deposit ≤ price, open < close, no overlapping intervals per weekday, unique service ids; errors read like `services[1].priceCents: must be 0 or more`. Fictional Harbor Paws fixture (public repo, so no real salon data). `saveBusinessConfig`/`loadBusinessConfig` (load re-validates; removed services are deactivated, not deleted). Idempotent `npm run db:seed`. CI: Postgres service, db:generate, db:deploy, seed run twice. 39 tests (DB tests create and drop their own database).
+Evals: none yet.
+Blockers: Day 1 blockers remain. Locally, ports 5433/6380 are held by a broken Docker Desktop engine, so today ran Postgres on 127.0.0.1:55433 under the default Docker context.
+Tomorrow's first step: Day 3, `packages/core/availability.ts` and its tests.
+
 ### 2026-11-01 — Day 1
 Shipped: npm workspaces (apps/api, worker, dashboard; packages/core, agent, channels, db). API with /healthz and /readyz (Postgres, Redis), Zod config, JSON logs, graceful shutdown. Design system CSS on Frontdesk tokens: ported PPP layers, plus status badges, thread and trace patterns, and brand/highlight tokens. Hardened Dockerfile, compose files. CI with lint, typecheck, 16 tests, token audits, npm audit, gitleaks, image smoke test, and deploy over a forced-command SSH key with rollback. Public repo https://github.com/ayenisholah/frontdesk-agent with secret scanning and push protection. Server: freed 13.7 GB (95% → 61% used), bootstrapped ~/frontdesk.
 Evals: none yet.
