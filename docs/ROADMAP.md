@@ -4,7 +4,7 @@
 
 Work is organised into milestones. Each one closes named requirement IDs and ends with a "done when" check. Each feature inside a milestone gets its own branch and pull request (see [CONTRIBUTING](../CONTRIBUTING.md)).
 
-**Needs the owner's accounts or decisions:** a Meta developer app and WhatsApp test number (before M3), an AWS account and region (before M4), Stripe test keys (before M5), and the pilot business's agreement (before M9).
+**Needs the owner's accounts or decisions:** a Meta developer app and WhatsApp test number (before M3), Bedrock model access in the EU (before M2 can run live), AWS infrastructure setup (before M4), Stripe test keys (before M5), and the pilot business's agreement (before M9).
 
 | Milestone | Theme | Status |
 |---|---|---|

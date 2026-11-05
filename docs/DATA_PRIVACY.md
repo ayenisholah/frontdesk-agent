@@ -16,7 +16,7 @@ This records how data is meant to be handled. It isn't legal advice. Applicable 
 
 | Processor | Data | Purpose |
 | --- | --- | --- |
-| AWS (hosting, Bedrock) | All stored data; message text for inference | Hosting and model calls |
+| AWS (hosting, Bedrock) | All stored data; message text for inference, processed in the EU | Hosting and model calls |
 | Meta (WhatsApp) | Phone numbers, messages | Delivery |
 | Twilio (SMS, stretch) | Phone numbers, messages | Delivery |
 | Stripe | Deposit details | Payment |
