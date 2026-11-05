@@ -1,0 +1,72 @@
+/* Conversation and booking state badges (DESIGN_SYSTEM §4 StatusBadge).
+   Builds on .badge from feedback.css. Colour is never the only signal: every state renders
+   a text label, and data-state also drives the leading marker's shape. */
+@layer components {
+  .badge[data-kind] {
+    --badge-bg: var(--state-soft);
+    --badge-fg: var(--state);
+  }
+  .badge[data-kind]::before {
+    content: "";
+    inline-size: 0.6em;
+    block-size: 0.6em;
+    background: currentColor;
+    border-radius: var(--radius-round);
+    flex: none;
+  }
+
+  /* Who is answering the conversation. */
+  .badge[data-kind="conversation"][data-state="agent"] {
+    --state: var(--color-state-agent);
+    --state-soft: var(--color-state-agent-soft);
+  }
+  .badge[data-kind="conversation"][data-state="owner"] {
+    --state: var(--color-state-owner);
+    --state-soft: var(--color-state-owner-soft);
+  }
+  .badge[data-kind="conversation"][data-state="owner"]::before {
+    border-radius: var(--radius-xs); /* square marker: a person has the thread */
+  }
+  .badge[data-kind="conversation"][data-state="closed"] {
+    --state: var(--color-state-closed);
+    --state-soft: var(--color-state-closed-soft);
+  }
+  .badge[data-kind="conversation"][data-state="closed"]::before {
+    background: transparent;
+    box-shadow: inset 0 0 0 var(--border-thick) currentColor; /* hollow marker */
+  }
+
+  /* Booking lifecycle. */
+  .badge[data-kind="booking"][data-state="pending_deposit"] {
+    --state: var(--color-booking-pending);
+    --state-soft: var(--color-booking-pending-soft);
+  }
+  .badge[data-kind="booking"][data-state="pending_deposit"]::before {
+    background: transparent;
+    box-shadow: inset 0 0 0 var(--border-thick) currentColor;
+  }
+  .badge[data-kind="booking"][data-state="confirmed"] {
+    --state: var(--color-booking-confirmed);
+    --state-soft: var(--color-booking-confirmed-soft);
+  }
+  .badge[data-kind="booking"][data-state="cancelled"] {
+    --state: var(--color-booking-cancelled);
+    --state-soft: var(--color-booking-cancelled-soft);
+  }
+  .badge[data-kind="booking"][data-state="cancelled"]::before {
+    border-radius: 0;
+    block-size: var(--border-heavy); /* a dash: struck out */
+  }
+  .badge[data-kind="booking"][data-state="completed"] {
+    --state: var(--color-booking-completed);
+    --state-soft: var(--color-booking-completed-soft);
+  }
+  .badge[data-kind="booking"][data-state="no_show"] {
+    --state: var(--color-booking-no-show);
+    --state-soft: var(--color-booking-no-show-soft);
+  }
+  .badge[data-kind="booking"][data-state="no_show"]::before {
+    border-radius: var(--radius-xs);
+    transform: rotate(45deg); /* diamond */
+  }
+}
