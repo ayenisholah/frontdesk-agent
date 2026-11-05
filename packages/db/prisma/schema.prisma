@@ -212,6 +212,8 @@ model Booking {
   endsAt       DateTime      @db.Timestamptz
   /// Which of the business's parallel capacity slots this occupies, from 0 to capacity - 1.
   lane         Int           @default(0)
+  /// While pending_deposit: when an unpaid booking gives up its slot.
+  depositDueAt DateTime?     @db.Timestamptz
   status       BookingStatus @default(pending_deposit)
   /// Copied from config at booking time, so later price edits don't change this booking.
   priceCents   Int
@@ -228,6 +230,7 @@ model Booking {
 
   @@index([businessId, startsAt])
   @@index([customerId])
+  @@index([status, depositDueAt])
 }
 
 model Payment {

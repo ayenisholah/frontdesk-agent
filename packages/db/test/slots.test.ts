@@ -1,15 +1,16 @@
 // Integration: holds and bookings on a real database, including races.
 import { harborPaws, type BusinessConfig } from "@frontdesk/core";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
   bookFromHold,
   cancelBooking,
-  expireHolds,
   placeHold,
+  releaseExpired,
   rescheduleBooking,
   saveBusinessConfig,
   type Db,
 } from "../src/index";
+import { withSlotLock } from "../src/slots";
 import { baseUrl, useTestDatabase } from "./test-db";
 
 // A Monday in UTC, far enough ahead to stay in the future. Open every day 09:00-17:00.
@@ -17,13 +18,13 @@ const NOW = new Date("2031-03-02T08:00:00Z");
 const at = (time: string) => new Date(`2031-03-03T${time}:00Z`);
 const MINUTES = 60_000;
 
-function config(slug: string, capacity: number): BusinessConfig {
+function config(slug: string, capacity: number, buffer = 0): BusinessConfig {
   return {
     ...structuredClone(harborPaws),
     slug,
     timezone: "UTC",
     capacity,
-    buffers: { beforeMinutes: 0, afterMinutes: 0 },
+    buffers: { beforeMinutes: buffer, afterMinutes: buffer },
     openingHours: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
       weekday,
       open: "09:00",
@@ -42,7 +43,8 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
     db = database.db();
   });
 
-  const business = (capacity = 1) => saveBusinessConfig(db, config(`shop-${++serial}`, capacity));
+  const business = (capacity = 1, buffer = 0) =>
+    saveBusinessConfig(db, config(`shop-${++serial}`, capacity, buffer));
 
   async function conversation(businessId: string) {
     const customer = await db.customer.create({
@@ -59,7 +61,7 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
   }
 
   const hold = (businessId: string, conversationId: string, startsAt: Date, now = NOW) =>
-    placeHold(db, { businessId, conversationId, serviceKey, startsAt, now });
+    placeHold(db, { businessId, conversationId, serviceKey, startsAt, clock: () => now });
 
   async function heldId(businessId: string, startsAt: Date) {
     const result = await hold(businessId, await conversation(businessId), startsAt);
@@ -82,6 +84,25 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
       const id = await business();
       const result = await hold(id, await conversation(id), at("10:07"));
       expect(result).toEqual({ ok: false, reason: "slot_unavailable" });
+    });
+
+    it("refuses a sub-minute time near a real slot", async () => {
+      const id = await business();
+      const startsAt = new Date("2031-03-03T09:59:30Z");
+      expect(await hold(id, await conversation(id), startsAt)).toEqual({
+        ok: false,
+        reason: "slot_unavailable",
+      });
+    });
+
+    it("sees neighbouring bookings through the buffers", async () => {
+      const id = await business(1, 30);
+      const duration = harborPaws.services[0]!.durationMinutes;
+      await heldId(id, at("10:00"));
+      const end = at("10:00").getTime() + duration * MINUTES;
+      const tooClose = await hold(id, await conversation(id), new Date(end + 45 * MINUTES));
+      expect(tooClose).toEqual({ ok: false, reason: "slot_unavailable" });
+      expect((await hold(id, await conversation(id), new Date(end + 60 * MINUTES))).ok).toBe(true);
     });
 
     it("refuses another conversation's slot at capacity", async () => {
@@ -137,7 +158,7 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
         conversationId: conv,
         serviceKey: "nope",
         startsAt: at("10:00"),
-        now: NOW,
+        clock: () => NOW,
       });
       expect(unknown).toEqual({ ok: false, reason: "service_not_found" });
       await db.service.updateMany({
@@ -148,15 +169,40 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
     });
   });
 
-  describe("expireHolds", () => {
-    it("expires only stale holds", async () => {
+  describe("releaseExpired", () => {
+    it("expires only stale holds and names their conversations", async () => {
       const id = await business();
-      const stale = await heldId(id, at("10:00"));
+      const conv = await conversation(id);
+      const result = await hold(id, conv, at("10:00"));
+      const holdId = result.ok ? result.hold.id : "";
       const boundary = new Date(NOW.getTime() + 15 * MINUTES);
-      const before = await expireHolds(db, new Date(boundary.getTime() - 1));
-      expect(before).toBe(0);
-      expect(await expireHolds(db, boundary)).toBeGreaterThanOrEqual(1);
-      expect((await db.hold.findUniqueOrThrow({ where: { id: stale } })).status).toBe("expired");
+      expect(await releaseExpired(db, new Date(boundary.getTime() - 1))).not.toContain(conv);
+      expect(await releaseExpired(db, boundary)).toContain(conv);
+      expect((await db.hold.findUniqueOrThrow({ where: { id: holdId } })).status).toBe("expired");
+    });
+
+    it("cancels unpaid bookings past their due time and names the conversation", async () => {
+      const id = await business();
+      const conv = await conversation(id);
+      const held = await hold(id, conv, at("10:00"));
+      const holdId = held.ok ? held.hold.id : "";
+      const booked = await bookFromHold(db, { businessId: id, holdId, clock: () => NOW });
+      const bookingId = booked.ok ? booked.booking.id : "";
+      expect(await releaseExpired(db, new Date(NOW.getTime() + 15 * MINUTES))).toContain(conv);
+      const row = await db.booking.findUniqueOrThrow({ where: { id: bookingId } });
+      expect(row.status).toBe("cancelled");
+    });
+
+    it("leaves paid bookings alone", async () => {
+      const id = await business();
+      const holdId = await heldId(id, at("10:00"));
+      const booked = await bookFromHold(db, { businessId: id, holdId, clock: () => NOW });
+      const bookingId = booked.ok ? booked.booking.id : "";
+      await db.booking.update({ where: { id: bookingId }, data: { status: "confirmed" } });
+      await releaseExpired(db, new Date(NOW.getTime() + 60 * MINUTES));
+      expect((await db.booking.findUniqueOrThrow({ where: { id: bookingId } })).status).toBe(
+        "confirmed",
+      );
     });
   });
 
@@ -164,7 +210,7 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
     it("creates a pending booking at the configured price and converts the hold", async () => {
       const id = await business();
       const holdId = await heldId(id, at("10:00"));
-      const result = await bookFromHold(db, { businessId: id, holdId, now: NOW });
+      const result = await bookFromHold(db, { businessId: id, holdId, clock: () => NOW });
       expect(result.ok).toBe(true);
       if (!result.ok) return;
       const row = await db.booking.findUniqueOrThrow({ where: { id: result.booking.id } });
@@ -181,7 +227,7 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
     it("keeps blocking the slot once booked", async () => {
       const id = await business();
       const holdId = await heldId(id, at("10:00"));
-      await bookFromHold(db, { businessId: id, holdId, now: NOW });
+      await bookFromHold(db, { businessId: id, holdId, clock: () => NOW });
       expect((await hold(id, await conversation(id), at("10:00"))).ok).toBe(false);
     });
 
@@ -190,14 +236,16 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
       const holdId = await heldId(id, at("10:00"));
       const refused = { ok: false, reason: "hold_not_valid" };
       const late = new Date(NOW.getTime() + 15 * MINUTES);
-      expect(await bookFromHold(db, { businessId: id, holdId, now: late })).toEqual(refused);
-      expect(await bookFromHold(db, { businessId: await business(), holdId, now: NOW })).toEqual(
+      expect(await bookFromHold(db, { businessId: id, holdId, clock: () => late })).toEqual(
         refused,
       );
-      await bookFromHold(db, { businessId: id, holdId, now: NOW });
-      expect(await bookFromHold(db, { businessId: id, holdId, now: NOW })).toEqual(refused);
+      expect(
+        await bookFromHold(db, { businessId: await business(), holdId, clock: () => NOW }),
+      ).toEqual(refused);
+      await bookFromHold(db, { businessId: id, holdId, clock: () => NOW });
+      expect(await bookFromHold(db, { businessId: id, holdId, clock: () => NOW })).toEqual(refused);
       const unknown = "00000000-0000-4000-8000-000000000000";
-      expect(await bookFromHold(db, { businessId: id, holdId: unknown, now: NOW })).toEqual(
+      expect(await bookFromHold(db, { businessId: id, holdId: unknown, clock: () => NOW })).toEqual(
         refused,
       );
     });
@@ -206,7 +254,7 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
       const id = await business(2);
       const lanes = [];
       for (const holdId of [await heldId(id, at("10:00")), await heldId(id, at("10:00"))]) {
-        const result = await bookFromHold(db, { businessId: id, holdId, now: NOW });
+        const result = await bookFromHold(db, { businessId: id, holdId, clock: () => NOW });
         if (result.ok)
           lanes.push(
             (await db.booking.findUniqueOrThrow({ where: { id: result.booking.id } })).lane,
@@ -215,25 +263,85 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
       expect(lanes).toEqual([0, 1]);
     });
 
-    it("reports a full slot when no lane is free", async () => {
+    it("sets the deposit due time from the hold", async () => {
       const id = await business();
+      const holdId = await heldId(id, at("10:00"));
+      const booked = await bookFromHold(db, { businessId: id, holdId, clock: () => NOW });
+      const row = await db.booking.findUniqueOrThrow({
+        where: { id: booked.ok ? booked.booking.id : "" },
+      });
+      expect(row.depositDueAt).toEqual(new Date(NOW.getTime() + 15 * MINUTES));
+    });
+
+    it("frees an overdue unpaid booking for the next claim", async () => {
+      const id = await business();
+      const holdId = await heldId(id, at("10:00"));
+      await bookFromHold(db, { businessId: id, holdId, clock: () => NOW });
+      const later = new Date(NOW.getTime() + 15 * MINUTES);
+      expect((await hold(id, await conversation(id), at("10:00"), later)).ok).toBe(true);
+    });
+
+    it("refuses a hold whose appointment has already started", async () => {
+      const id = await business();
+      const earlyNow = new Date("2031-03-03T08:50:00Z");
+      const conv = await conversation(id);
+      const held = await hold(id, conv, at("09:00"), earlyNow);
+      const holdId = held.ok ? held.hold.id : "";
+      const result = await bookFromHold(db, { businessId: id, holdId, clock: () => at("09:01") });
+      expect(result).toEqual({ ok: false, reason: "slot_unavailable" });
+    });
+
+    it("refuses when hours change after the hold", async () => {
+      const id = await business();
+      const slug = (await db.business.findUniqueOrThrow({ where: { id } })).slug;
+      const holdId = await heldId(id, at("10:00"));
+      const shorter = config(slug, 1);
+      shorter.openingHours = shorter.openingHours.map((h) => ({ ...h, open: "12:00" }));
+      await saveBusinessConfig(db, shorter);
+      const result = await bookFromHold(db, { businessId: id, holdId, clock: () => NOW });
+      expect(result).toEqual({ ok: false, reason: "slot_unavailable" });
+    });
+
+    it("refuses when capacity drops after the hold, whichever lane is free", async () => {
+      const id = await business(2);
+      const slug = (await db.business.findUniqueOrThrow({ where: { id } })).slug;
+      const first = await heldId(id, at("10:00"));
+      const booked = await bookFromHold(db, { businessId: id, holdId: first, clock: () => NOW });
+      await db.booking.update({
+        where: { id: booked.ok ? booked.booking.id : "" },
+        data: { lane: 1 },
+      });
+      const second = await heldId(id, at("10:00"));
+      await saveBusinessConfig(db, config(slug, 1));
+      const result = await bookFromHold(db, { businessId: id, holdId: second, clock: () => NOW });
+      expect(result).toEqual({ ok: false, reason: "slot_unavailable" });
+    });
+
+    it("reports a full slot when the engine allows it but no lane is free", async () => {
+      const id = await business(2);
       const holdId = await heldId(id, at("10:00"));
       const held = await db.hold.findUniqueOrThrow({
         where: { id: holdId },
-        include: { conversation: true, service: true },
+        include: { conversation: true },
       });
-      await db.booking.create({
-        data: {
-          businessId: id,
-          customerId: held.conversation.customerId,
-          serviceId: held.serviceId,
-          startsAt: held.startsAt,
-          endsAt: held.endsAt,
-          priceCents: 1,
-          depositCents: 1,
-        },
-      });
-      expect(await bookFromHold(db, { businessId: id, holdId, now: NOW })).toEqual({
+      const half = (held.endsAt.getTime() - held.startsAt.getTime()) / 2;
+      const fill = (start: number, lane: number) =>
+        db.booking.create({
+          data: {
+            businessId: id,
+            customerId: held.conversation.customerId,
+            serviceId: held.serviceId,
+            startsAt: new Date(start),
+            endsAt: new Date(start + half),
+            lane,
+            priceCents: 1,
+            depositCents: 1,
+          },
+        });
+      // Back-to-back jobs on different lanes: peak is 1, but no lane is free for the whole slot.
+      await fill(held.startsAt.getTime(), 0);
+      await fill(held.startsAt.getTime() + half, 1);
+      expect(await bookFromHold(db, { businessId: id, holdId, clock: () => NOW })).toEqual({
         ok: false,
         reason: "slot_unavailable",
       });
@@ -245,10 +353,17 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
     async function booked(capacity = 1) {
       const businessId = await business(capacity);
       const holdId = await heldId(businessId, at("10:00"));
-      const result = await bookFromHold(db, { businessId, holdId, now: NOW });
+      const result = await bookFromHold(db, { businessId, holdId, clock: () => NOW });
       if (!result.ok) throw new Error(result.reason);
       const row = await db.booking.findUniqueOrThrow({ where: { id: result.booking.id } });
-      return { businessId, bookingId: row.id, customerId: row.customerId, now: NOW };
+      return { businessId, bookingId: row.id, customerId: row.customerId, clock: () => NOW };
+    }
+
+    /** The window policy applies to paid bookings; an unpaid one would already be released. */
+    async function paid(capacity = 1) {
+      const request = await booked(capacity);
+      await db.booking.update({ where: { id: request.bookingId }, data: { status: "confirmed" } });
+      return request;
     }
 
     const statusOf = async (id: string) =>
@@ -281,8 +396,8 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
       });
 
       it("refuses inside the window with the policy text", async () => {
-        const request = await booked();
-        const result = await cancelBooking(db, { ...request, now: late });
+        const request = await paid();
+        const result = await cancelBooking(db, { ...request, clock: () => late });
         expect(result).toMatchObject({ ok: false, reason: "outside_policy" });
         expect(!result.ok && "policy" in result && result.policy).toContain("hours before");
       });
@@ -333,14 +448,33 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
         expect(result).toEqual({ ok: false, reason: "slot_unavailable" });
       });
 
-      it("applies the same customer and policy rules as cancelling", async () => {
-        const request = await booked();
-        const result = await rescheduleBooking(db, {
-          ...request,
-          startsAt: at("14:00"),
-          now: late,
+      it("applies the same customer, tenant and policy rules as cancelling", async () => {
+        const request = await paid();
+        const move = { ...request, startsAt: at("14:00") };
+        const other = await db.customer.create({
+          data: { businessId: request.businessId, phone: "+15559990001", channel: "sms" },
         });
-        expect(result).toMatchObject({ ok: false, reason: "outside_policy" });
+        expect(await rescheduleBooking(db, { ...move, clock: () => late })).toMatchObject({
+          ok: false,
+          reason: "outside_policy",
+        });
+        expect(await rescheduleBooking(db, { ...move, customerId: other.id })).toEqual({
+          ok: false,
+          reason: "not_customers_booking",
+        });
+        expect(await rescheduleBooking(db, { ...move, businessId: await business() })).toEqual({
+          ok: false,
+          reason: "booking_not_found",
+        });
+      });
+
+      it("refuses a sub-minute time", async () => {
+        const request = await booked();
+        const startsAt = new Date("2031-03-03T13:59:30Z");
+        expect(await rescheduleBooking(db, { ...request, startsAt })).toEqual({
+          ok: false,
+          reason: "slot_unavailable",
+        });
       });
 
       it("reports a full slot when the engine allows it but no lane is free", async () => {
@@ -386,11 +520,62 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
       30_000,
     );
 
+    it("lets only one of a move and a hold take the same slot", async () => {
+      const id = await business();
+      const holdId = await heldId(id, at("10:00"));
+      const booked = await bookFromHold(db, { businessId: id, holdId, clock: () => NOW });
+      const bookingId = booked.ok ? booked.booking.id : "";
+      const { customerId } = await db.booking.findUniqueOrThrow({ where: { id: bookingId } });
+      const conv = await conversation(id);
+      const [moved, held] = await Promise.all([
+        rescheduleBooking(db, {
+          businessId: id,
+          bookingId,
+          customerId,
+          startsAt: at("14:00"),
+          clock: () => NOW,
+        }),
+        hold(id, conv, at("14:00")),
+      ]);
+      expect([moved.ok, held.ok].filter(Boolean)).toHaveLength(1);
+    }, 30_000);
+
+    it("reads the clock only after getting the lock", async () => {
+      const id = await business();
+      const clock = vi.fn(() => NOW);
+      let release = () => {};
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      let locked = () => {};
+      const holding = new Promise<void>((resolve) => {
+        locked = resolve;
+      });
+      const first = withSlotLock(
+        db,
+        id,
+        () => NOW,
+        async () => {
+          locked();
+          await gate;
+        },
+      );
+      await holding;
+      const second = withSlotLock(db, id, clock, async () => {});
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(clock).not.toHaveBeenCalled();
+      release();
+      await Promise.all([first, second]);
+      expect(clock).toHaveBeenCalledOnce();
+    }, 30_000);
+
     it("books each hold once when the same hold is submitted together", async () => {
       const id = await business();
       const holdId = await heldId(id, at("10:00"));
       const results = await Promise.all(
-        Array.from({ length: 5 }, () => bookFromHold(db, { businessId: id, holdId, now: NOW })),
+        Array.from({ length: 5 }, () =>
+          bookFromHold(db, { businessId: id, holdId, clock: () => NOW }),
+        ),
       );
       expect(results.filter((r) => r.ok)).toHaveLength(1);
       expect(await db.booking.count({ where: { businessId: id } })).toBe(1);
