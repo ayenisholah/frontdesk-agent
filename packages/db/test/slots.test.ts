@@ -1,7 +1,15 @@
 // Integration: holds and bookings on a real database, including races.
 import { harborPaws, type BusinessConfig } from "@frontdesk/core";
 import { beforeAll, describe, expect, it } from "vitest";
-import { bookFromHold, expireHolds, placeHold, saveBusinessConfig, type Db } from "../src/index";
+import {
+  bookFromHold,
+  cancelBooking,
+  expireHolds,
+  placeHold,
+  rescheduleBooking,
+  saveBusinessConfig,
+  type Db,
+} from "../src/index";
 import { baseUrl, useTestDatabase } from "./test-db";
 
 // A Monday in UTC, far enough ahead to stay in the future. Open every day 09:00-17:00.
@@ -228,6 +236,140 @@ describe.skipIf(!baseUrl)("holds and bookings", () => {
       expect(await bookFromHold(db, { businessId: id, holdId, now: NOW })).toEqual({
         ok: false,
         reason: "slot_unavailable",
+      });
+    });
+  });
+
+  describe("changing a booking", () => {
+    /** Books 10:00 tomorrow and returns everything a change needs. */
+    async function booked(capacity = 1) {
+      const businessId = await business(capacity);
+      const holdId = await heldId(businessId, at("10:00"));
+      const result = await bookFromHold(db, { businessId, holdId, now: NOW });
+      if (!result.ok) throw new Error(result.reason);
+      const row = await db.booking.findUniqueOrThrow({ where: { id: result.booking.id } });
+      return { businessId, bookingId: row.id, customerId: row.customerId, now: NOW };
+    }
+
+    const statusOf = async (id: string) =>
+      (await db.booking.findUniqueOrThrow({ where: { id } })).status;
+    const late = new Date(at("10:00").getTime() - 60 * MINUTES);
+
+    describe("cancelBooking", () => {
+      it("cancels and frees the slot", async () => {
+        const request = await booked();
+        expect(await cancelBooking(db, request)).toEqual({ ok: true });
+        const row = await db.booking.findUniqueOrThrow({ where: { id: request.bookingId } });
+        expect(row.status).toBe("cancelled");
+        expect(row.cancelledAt).toEqual(NOW);
+        const next = await hold(
+          request.businessId,
+          await conversation(request.businessId),
+          at("10:00"),
+        );
+        expect(next.ok).toBe(true);
+      });
+
+      it("refuses a different customer", async () => {
+        const request = await booked();
+        const other = await db.customer.create({
+          data: { businessId: request.businessId, phone: "+15559990000", channel: "sms" },
+        });
+        const result = await cancelBooking(db, { ...request, customerId: other.id });
+        expect(result).toEqual({ ok: false, reason: "not_customers_booking" });
+        expect(await statusOf(request.bookingId)).toBe("pending_deposit");
+      });
+
+      it("refuses inside the window with the policy text", async () => {
+        const request = await booked();
+        const result = await cancelBooking(db, { ...request, now: late });
+        expect(result).toMatchObject({ ok: false, reason: "outside_policy" });
+        expect(!result.ok && "policy" in result && result.policy).toContain("hours before");
+      });
+
+      it("refuses a booking from another business, or one already cancelled", async () => {
+        const request = await booked();
+        const refused = { ok: false, reason: "booking_not_found" };
+        expect(await cancelBooking(db, { ...request, businessId: await business() })).toEqual(
+          refused,
+        );
+        await cancelBooking(db, request);
+        expect(await cancelBooking(db, request)).toEqual(refused);
+      });
+    });
+
+    describe("rescheduleBooking", () => {
+      it("moves the booking and frees the old slot", async () => {
+        const request = await booked();
+        const result = await rescheduleBooking(db, { ...request, startsAt: at("14:00") });
+        expect(result.ok).toBe(true);
+        const row = await db.booking.findUniqueOrThrow({ where: { id: request.bookingId } });
+        expect(row.startsAt).toEqual(at("14:00"));
+        const next = await hold(
+          request.businessId,
+          await conversation(request.businessId),
+          at("10:00"),
+        );
+        expect(next.ok).toBe(true);
+      });
+
+      it("can move a little, overlapping its own old time", async () => {
+        const request = await booked();
+        expect((await rescheduleBooking(db, { ...request, startsAt: at("10:15") })).ok).toBe(true);
+      });
+
+      it("refuses a taken slot and leaves the booking alone", async () => {
+        const request = await booked();
+        await heldId(request.businessId, at("14:00"));
+        const result = await rescheduleBooking(db, { ...request, startsAt: at("14:00") });
+        expect(result).toEqual({ ok: false, reason: "slot_unavailable" });
+        const row = await db.booking.findUniqueOrThrow({ where: { id: request.bookingId } });
+        expect(row.startsAt).toEqual(at("10:00"));
+      });
+
+      it("refuses an invented time", async () => {
+        const request = await booked();
+        const result = await rescheduleBooking(db, { ...request, startsAt: at("14:07") });
+        expect(result).toEqual({ ok: false, reason: "slot_unavailable" });
+      });
+
+      it("applies the same customer and policy rules as cancelling", async () => {
+        const request = await booked();
+        const result = await rescheduleBooking(db, {
+          ...request,
+          startsAt: at("14:00"),
+          now: late,
+        });
+        expect(result).toMatchObject({ ok: false, reason: "outside_policy" });
+      });
+
+      it("reports a full slot when the engine allows it but no lane is free", async () => {
+        const request = await booked(2);
+        const { service, customerId } = await db.booking.findUniqueOrThrow({
+          where: { id: request.bookingId },
+          include: { service: true },
+        });
+        const fill = (startsAt: Date, lane: number) =>
+          db.booking.create({
+            data: {
+              businessId: request.businessId,
+              customerId,
+              serviceId: service.id,
+              startsAt,
+              endsAt: new Date(startsAt.getTime() + service.durationMinutes * MINUTES),
+              lane,
+              priceCents: 1,
+              depositCents: 1,
+            },
+          });
+        // Back-to-back jobs on different lanes: peak is 1, but no lane is free for the whole move.
+        await fill(new Date(at("14:00").getTime() - service.durationMinutes * MINUTES), 0);
+        await fill(at("14:00"), 1);
+        const start = new Date(at("14:00").getTime() - (service.durationMinutes * MINUTES) / 2);
+        expect(await rescheduleBooking(db, { ...request, startsAt: start })).toEqual({
+          ok: false,
+          reason: "slot_unavailable",
+        });
       });
     });
   });

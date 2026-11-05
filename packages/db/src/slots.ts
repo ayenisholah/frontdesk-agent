@@ -6,7 +6,7 @@ import { BookingStatus, HoldStatus } from "./generated/enums";
 const MINUTE_MS = 60_000;
 
 /** Statuses that occupy time. Must match the Booking_no_lane_overlap constraint. */
-const OCCUPYING: BookingStatus[] = [BookingStatus.pending_deposit, BookingStatus.confirmed];
+export const OCCUPYING: BookingStatus[] = [BookingStatus.pending_deposit, BookingStatus.confirmed];
 
 /** Runs `work` while holding the business's slot lock, so claims can't race each other. */
 export function withSlotLock<T>(
@@ -51,6 +51,8 @@ export type BusyQuery = {
   now: Date;
   /** Ignore this conversation's hold, so a replacement can reuse its own time. */
   exceptConversationId?: string;
+  /** Ignore this booking, so a move can overlap its own old time. */
+  exceptBookingId?: string;
 };
 
 /**
@@ -58,7 +60,7 @@ export type BusyQuery = {
  * its status is updated.
  */
 export async function loadBusy(tx: Tx, query: BusyQuery): Promise<Interval[]> {
-  const { businessId, rules, startsAt, endsAt, now, exceptConversationId } = query;
+  const { businessId, rules, startsAt, endsAt, now, exceptConversationId, exceptBookingId } = query;
   const margin = (rules.buffers.beforeMinutes + rules.buffers.afterMinutes) * MINUTE_MS;
   const overlaps = {
     startsAt: { lt: new Date(endsAt.getTime() + margin) },
@@ -76,17 +78,26 @@ export async function loadBusy(tx: Tx, query: BusyQuery): Promise<Interval[]> {
       },
       select,
     }),
-    tx.booking.findMany({ where: { businessId, status: { in: OCCUPYING }, ...overlaps }, select }),
+    tx.booking.findMany({
+      where: { businessId, status: { in: OCCUPYING }, id: { not: exceptBookingId }, ...overlaps },
+      select,
+    }),
   ]);
   return [...holds, ...bookings];
 }
 
 /** The lowest lane free for this time, or null when every lane is taken. */
-export async function freeLane(tx: Tx, businessId: string, capacity: number, slot: Interval) {
+export async function freeLane(
+  tx: Tx,
+  businessId: string,
+  capacity: number,
+  slot: Interval & { exceptBookingId?: string },
+) {
   const taken = await tx.booking.findMany({
     where: {
       businessId,
       status: { in: OCCUPYING },
+      id: { not: slot.exceptBookingId },
       startsAt: { lt: slot.endsAt },
       endsAt: { gt: slot.startsAt },
     },
