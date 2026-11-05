@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    ".": { "entry": ["scripts/*.{ts,mjs}"], "project": ["scripts/**", "design/**"] },
+    "apps/api": { "project": ["src/**", "test/**"] },
+    "apps/worker": { "entry": ["src/index.ts"], "project": ["src/**"] },
+    "packages/agent": { "project": ["src/**"] },
+    "packages/channels": { "project": ["src/**"] },
+    "packages/core": { "project": ["src/**", "test/**"] },
+    "packages/db": {
+      "entry": ["scripts/*.ts"],
+      "project": ["src/**", "test/**", "scripts/**"],
+      "ignoreDependencies": ["@prisma/client"]
+    }
+  }
+}
