@@ -88,5 +88,6 @@ export function findSlots(query: SlotQuery): Interval[] {
 
 /** True only for a time the engine would offer, so an invented time is refused (GR-2). */
 export function isSlotAvailable({ startsAt, ...context }: Context & { startsAt: Date }): boolean {
-  return findSlots({ ...context, from: startsAt, to: addMinutes(startsAt, 1) }).length === 1;
+  const slots = findSlots({ ...context, from: startsAt, to: addMinutes(startsAt, 1) });
+  return slots.some((slot) => slot.startsAt.getTime() === startsAt.getTime());
 }

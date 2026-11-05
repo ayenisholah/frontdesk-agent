@@ -203,6 +203,16 @@ describe("isSlotAvailable", () => {
     expect(isSlotAvailable({ ...context, startsAt: at("09:07") })).toBe(false);
   });
 
+  it.each(["09:59:30", "09:59:00.001", "08:59:30"])("refuses the sub-minute time %s", (time) => {
+    const startsAt = new Date(`2026-07-01T${time}-04:00`);
+    expect(isSlotAvailable({ ...context, startsAt })).toBe(false);
+  });
+
+  it("refuses a sub-minute time overlapping a busy job", () => {
+    const startsAt = new Date("2026-07-01T09:59:30-04:00");
+    expect(isSlotAvailable({ ...context, busy: [job("09:00", "10:00")], startsAt })).toBe(false);
+  });
+
   it("refuses a time outside opening hours", () => {
     expect(isSlotAvailable({ ...context, startsAt: at("15:00") })).toBe(false);
   });
