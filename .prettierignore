@@ -1,0 +1,7 @@
+dist
+node_modules
+package-lock.json
+apps/dashboard/styles/tokens.css
+docs
+packages/db/src/generated
+packages/db/prisma/migrations

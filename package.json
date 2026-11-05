@@ -1,0 +1,54 @@
+{
+  "name": "frontdesk-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An AI front desk on WhatsApp for appointment-based small businesses: quotes, books, takes deposits, reminds, and hands off to the owner.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @frontdesk/api",
+    "build": "npm run build -w @frontdesk/api",
+    "db:generate": "npm run generate -w @frontdesk/db",
+    "db:migrate": "npm run migrate -w @frontdesk/db",
+    "db:deploy": "npm run deploy -w @frontdesk/db",
+    "db:seed": "npm run seed -w @frontdesk/db",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "check:deps": "depcruise apps packages --config .dependency-cruiser.cjs",
+    "check:dupes": "jscpd --config .jscpd.json",
+    "check:unused": "knip",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run check:deps && npm run check:dupes && npm run check:unused && npm run test:coverage && npm run audit:tokens && npm run audit:units",
+    "tokens": "tsx scripts/build-tokens.ts",
+    "audit:tokens": "tsx scripts/build-tokens.ts --check && tsx scripts/audit-contrast.ts",
+    "audit:units": "node scripts/audit-units.mjs"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "@vitest/coverage-v8": "^4.1.12",
+    "dependency-cruiser": "^17.4.3",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "jscpd": "^5.4.2",
+    "knip": "^6.44.1",
+    "lefthook": "^2.2.2",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^4.1.12"
+  }
+}

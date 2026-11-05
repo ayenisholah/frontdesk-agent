@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+release.tar.gz
+.DS_Store
+packages/db/src/generated/
