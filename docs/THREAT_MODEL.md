@@ -26,6 +26,7 @@ Provider webhooks into `api` · customer text into the model · model output int
 | T-10 | Malicious dependency or action (Tampering) | SHA-pinned actions, Dependabot, CodeQL, `npm audit` | Implemented |
 | T-11 | Stolen CI credentials reach production (Elevation of privilege) | OIDC with a role scoped to this repo and environment ([ADR 0008](adr/0008-github-actions-oidc-deploy.md)) | Planned, M4 |
 | T-12 | Owner takeover ignored; agent replies anyway (Tampering) | State checked before any model call (GR-6) | Planned, M6 |
+| T-13 | Racing conversations double-book a slot (Tampering) | Per-business slot lock and a lane exclusion constraint ([ADR 0010](adr/0010-booking-concurrency.md)) | Implemented |
 
 ## Known risks to design for
 

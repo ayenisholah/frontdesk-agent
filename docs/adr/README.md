@@ -12,3 +12,4 @@ Each record captures one decision, its context and its consequences. Records are
 | [0006](0006-testing-policy.md) | 100% coverage gate and evals as a release gate | Accepted |
 | [0007](0007-git-workflow.md) | Feature branches, pull requests, rebase merges | Accepted |
 | [0008](0008-github-actions-oidc-deploy.md) | GitHub Actions deploys to AWS through OIDC | Accepted |
+| [0010](0010-booking-concurrency.md) | Booking concurrency with a slot lock and lanes | Accepted |

@@ -29,7 +29,7 @@ Work is organised into milestones. Each one closes named requirement IDs and end
 ## M1: Availability and bookings
 
 - **Closes:** FR-BK-1, FR-BK-2, FR-BK-3, FR-BK-4, FR-BK-5
-- **Build:** `packages/core/availability.ts`, pure with no I/O: slots from hours, duration, buffers, capacity, bookings and holds, in the business timezone. Hold creation and replacement (one per conversation, 15-minute TTL), booking from a hold, cancel and reschedule with the policy window. A database exclusion constraint so overlapping confirmed or pending bookings can't exist, even under a race.
+- **Build:** `packages/core/availability.ts`, pure with no I/O: slots from hours, duration, buffers, capacity, bookings and holds, in the business timezone. Hold creation and replacement (one per conversation, 15-minute TTL), booking from a hold, cancel and reschedule with the policy window. A per-business slot lock, with a lane exclusion constraint as a database backstop, so a race can't double-book ([ADR 0010](adr/0010-booking-concurrency.md)).
 - **Done when:** unit tests pass for closed day, end-past-close, buffer, capacity 2, hold blocking and DST, plus one concurrent double-booking test.
 
 ## M2: Agent core
