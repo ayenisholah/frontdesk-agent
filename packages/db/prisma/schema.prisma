@@ -210,6 +210,8 @@ model Booking {
   holdId       String?       @unique @db.Uuid
   startsAt     DateTime      @db.Timestamptz
   endsAt       DateTime      @db.Timestamptz
+  /// Which of the business's parallel capacity slots this occupies, from 0 to capacity - 1.
+  lane         Int           @default(0)
   status       BookingStatus @default(pending_deposit)
   /// Copied from config at booking time, so later price edits don't change this booking.
   priceCents   Int

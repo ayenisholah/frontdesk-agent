@@ -1,39 +1,15 @@
 // Integration: needs a Postgres server (DATABASE_URL). Runs in CI against a service container.
-// Each run creates and drops its own database, so it never touches dev data.
-import { execFileSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
-import { fileURLToPath } from "node:url";
-import pg from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { harborPaws, type BusinessConfig } from "@frontdesk/core";
-import { createDb, loadBusinessConfig, saveBusinessConfig, type Db } from "../src/index";
-
-const baseUrl = process.env.DATABASE_URL;
-const pkgDir = fileURLToPath(new URL("..", import.meta.url));
+import { loadBusinessConfig, saveBusinessConfig, type Db } from "../src/index";
+import { baseUrl, useTestDatabase } from "./test-db";
 
 describe.skipIf(!baseUrl)("business config persistence", () => {
-  const dbName = `frontdesk_test_${randomBytes(4).toString("hex")}`;
-  let admin: pg.Client;
+  const database = useTestDatabase();
   let db: Db;
 
-  beforeAll(async () => {
-    admin = new pg.Client({ connectionString: baseUrl });
-    await admin.connect();
-    await admin.query(`CREATE DATABASE "${dbName}"`);
-    const url = new URL(baseUrl!);
-    url.pathname = `/${dbName}`;
-    execFileSync("npx", ["prisma", "migrate", "deploy"], {
-      cwd: pkgDir,
-      env: { ...process.env, DATABASE_URL: url.toString() },
-      stdio: "pipe",
-    });
-    db = createDb(url.toString());
-  }, 60_000);
-
-  afterAll(async () => {
-    await db?.$disconnect();
-    await admin?.query(`DROP DATABASE IF EXISTS "${dbName}" WITH (FORCE)`);
-    await admin?.end();
+  beforeAll(() => {
+    db = database.db();
   });
 
   const counts = async () => ({
