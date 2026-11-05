@@ -13,3 +13,4 @@ Each record captures one decision, its context and its consequences. Records are
 | [0007](0007-git-workflow.md) | Feature branches, pull requests, rebase merges | Accepted |
 | [0008](0008-github-actions-oidc-deploy.md) | GitHub Actions deploys to AWS through OIDC | Accepted |
 | [0010](0010-booking-concurrency.md) | Booking concurrency with a slot lock and lanes | Accepted |
+| [0011](0011-bedrock-region-and-agent-boundary.md) | Bedrock region and the agent\'s boundaries | Accepted |
