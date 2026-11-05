@@ -1,0 +1,22 @@
+name: Bug report
+description: Something doesn't work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: behaviour
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Don't include real customer data, phone numbers or secrets.
+    validations:
+      required: true
+  - type: input
+    id: requirement
+    attributes:
+      label: Related requirement ID
+      placeholder: FR-BK-1
