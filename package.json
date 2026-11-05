@@ -1,6 +1,6 @@
 {
   "name": "frontdesk-agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "An AI front desk on WhatsApp for appointment-based small businesses: quotes, books, takes deposits, reminds, and hands off to the owner.",
   "license": "MIT",
