@@ -1,8 +1,7 @@
 // Holds: a short claim on a slot while the customer decides or pays.
-import { isSlotAvailable } from "@frontdesk/core";
 import type { Db } from "./client";
-import { HoldStatus } from "./generated/enums";
-import { loadBusy, loadRules, withSlotLock } from "./slots";
+import { BookingStatus, HoldStatus } from "./generated/enums";
+import { canClaim, withSlotLock, type Clock } from "./slots";
 
 const HOLD_MINUTES = 15;
 const MINUTE_MS = 60_000;
@@ -13,7 +12,7 @@ export type HoldRequest = {
   /** The service's stable key from config. */
   serviceKey: string;
   startsAt: Date;
-  now: Date;
+  clock: Clock;
 };
 
 export type HoldResult =
@@ -25,8 +24,8 @@ export type HoldResult =
  * re-validates the time, so an invented slot is refused. A refusal keeps the existing hold.
  */
 export function placeHold(db: Db, request: HoldRequest): Promise<HoldResult> {
-  const { businessId, conversationId, serviceKey, startsAt, now } = request;
-  return withSlotLock(db, businessId, async (tx) => {
+  const { businessId, conversationId, serviceKey, startsAt, clock } = request;
+  return withSlotLock(db, businessId, clock, async (tx, now) => {
     const conversation = await tx.conversation.findFirst({
       where: { id: conversationId, businessId },
     });
@@ -36,19 +35,16 @@ export function placeHold(db: Db, request: HoldRequest): Promise<HoldResult> {
     });
     if (!service) return { ok: false, reason: "service_not_found" };
 
-    const rules = await loadRules(tx, businessId);
     const endsAt = new Date(startsAt.getTime() + service.durationMinutes * MINUTE_MS);
-    const busy = await loadBusy(tx, {
+    const claim = {
       businessId,
-      rules,
+      service,
       startsAt,
       endsAt,
       now,
       exceptConversationId: conversationId,
-    });
-    if (!isSlotAvailable({ config: rules, service, now, busy, startsAt })) {
-      return { ok: false, reason: "slot_unavailable" };
-    }
+    };
+    if (!(await canClaim(tx, claim))) return { ok: false, reason: "slot_unavailable" };
 
     await tx.hold.updateMany({
       where: { conversationId, status: HoldStatus.active },
@@ -69,11 +65,25 @@ export function placeHold(db: Db, request: HoldRequest): Promise<HoldResult> {
   });
 }
 
-/** Marks stale holds expired and returns how many changed. */
-export async function expireHolds(db: Db, now: Date): Promise<number> {
-  const { count } = await db.hold.updateMany({
-    where: { status: HoldStatus.active, expiresAt: { lte: now } },
-    data: { status: HoldStatus.expired },
+/**
+ * Expires stale holds and unpaid bookings, and returns the conversations affected so the
+ * customer can be told. Runs across all businesses, as a scheduled job.
+ */
+export function releaseExpired(db: Db, now: Date): Promise<string[]> {
+  return db.$transaction(async (tx) => {
+    const staleHold = { status: HoldStatus.active, expiresAt: { lte: now } };
+    const unpaid = { status: BookingStatus.pending_deposit, depositDueAt: { lte: now } };
+    const holds = await tx.hold.findMany({ where: staleHold, select: { conversationId: true } });
+    const bookings = await tx.booking.findMany({
+      where: unpaid,
+      select: { hold: { select: { conversationId: true } } },
+    });
+    await tx.hold.updateMany({ where: staleHold, data: { status: HoldStatus.expired } });
+    await tx.booking.updateMany({
+      where: unpaid,
+      data: { status: BookingStatus.cancelled, cancelledAt: now },
+    });
+    const ids = [...holds, ...bookings.map((b) => b.hold!)].map((row) => row.conversationId);
+    return [...new Set(ids)];
   });
-  return count;
 }

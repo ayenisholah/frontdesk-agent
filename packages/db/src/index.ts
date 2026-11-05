@@ -9,5 +9,6 @@ export {
   type CancelResult,
   type RescheduleResult,
 } from "./bookings";
-export { expireHolds, placeHold, type HoldResult } from "./holds";
+export { placeHold, releaseExpired, type HoldResult } from "./holds";
+export type { Clock } from "./slots";
 export * from "./generated/enums";

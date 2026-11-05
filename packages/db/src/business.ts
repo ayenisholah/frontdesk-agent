@@ -8,6 +8,7 @@ import {
   type BusinessConfig,
 } from "@frontdesk/core";
 import type { Db } from "./client";
+import { lockSlots } from "./slots";
 
 /**
  * Creates or updates a business from config, in one transaction. Idempotent.
@@ -36,6 +37,8 @@ export async function saveBusinessConfig(db: Db, input: BusinessConfig): Promise
       select: { id: true },
     });
     const businessId = business.id;
+    // A claim in progress must not read half-changed hours or capacity.
+    await lockSlots(tx, businessId);
 
     for (const [position, s] of config.services.entries()) {
       const data = {
