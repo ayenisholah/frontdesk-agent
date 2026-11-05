@@ -1,6 +1,7 @@
 // Domain rules with no I/O: availability, booking rules and policies.
 export { findSlots, isSlotAvailable, type Interval, type SlotQuery } from "./availability";
 export { isE164, normalizePhone } from "./phone";
+export { canChangeBooking, type PolicyDecision } from "./policy";
 export {
   assertBusinessConfig,
   businessConfigSchema,
