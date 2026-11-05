@@ -58,3 +58,22 @@ jobs:
         run: npm run db:seed && npm run db:seed
       - run: npm run audit:tokens
       - run: npm run audit:units
+  image:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build image for this exact commit
+        run: docker build --build-arg VCS_REF=${{ github.sha }} -t frontdesk-api:${{ github.sha }} .
+      - name: Smoke test /healthz
+        run: |
+          docker run -d --name smoke -p 127.0.0.1:3110:3110 \
+            -e DATABASE_URL=postgresql://u:p@127.0.0.1:1/db -e REDIS_URL=redis://127.0.0.1:1 \
+            frontdesk-api:${{ github.sha }}
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:3110/healthz && exit 0; sleep 1; done
+          docker logs smoke; exit 1
+      - name: Check revision label
+        run: |
+          label=$(docker image inspect frontdesk-api:${{ github.sha }} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')
+          test "$label" = "${{ github.sha }}"
