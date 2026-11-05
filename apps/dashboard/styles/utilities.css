@@ -1,0 +1,139 @@
+/* A deliberately small utility layer. If a pattern repeats, make it a component instead. */
+@layer utilities {
+  .text-center {
+    text-align: center;
+  }
+  .text-muted {
+    color: var(--color-text-muted);
+  }
+  .text-accent {
+    color: var(--color-accent);
+  }
+  .text-s {
+    font-size: var(--step--1);
+  }
+  .text-l {
+    font-size: var(--step-1);
+  }
+  .font-display {
+    font-family: var(--font-display-stack);
+  }
+  .nowrap {
+    white-space: nowrap;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .measure {
+    max-inline-size: var(--measure);
+  }
+  .full-bleed {
+    inline-size: 100%;
+  }
+  .mt-auto {
+    margin-block-start: auto;
+  }
+  .flow > * + * {
+    margin-block-start: var(--flow-space, 1em);
+  }
+  .visually-hidden {
+    position: absolute !important;
+    inline-size: 0.0625rem;
+    block-size: 0.0625rem;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  @media (max-width: 47.99em) {
+    .hide-small {
+      display: none !important;
+    }
+  }
+  @media (min-width: 48em) {
+    .hide-large {
+      display: none !important;
+    }
+  }
+}
+
+/* Styleguide-only helpers (app/styleguide). */
+@layer patterns {
+  .sg-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+  }
+  .sg-swatch {
+    display: grid;
+    gap: var(--space-3xs);
+    font-size: var(--step--1);
+  }
+  .sg-swatch span {
+    block-size: 3.5rem;
+    border-radius: var(--radius-m);
+    border: var(--border-hairline) solid var(--color-border);
+  }
+  .sg-swatch small {
+    color: var(--color-text-subtle);
+  }
+  .sg-ramp {
+    display: grid;
+    grid-template-columns: 5rem repeat(auto-fit, minmax(2.75rem, 1fr));
+    gap: var(--space-3xs);
+    align-items: center;
+    font-size: var(--step--2);
+  }
+  .sg-ramp span {
+    display: grid;
+    place-items: end start;
+    block-size: 2.75rem;
+    padding: 0.25em;
+    border-radius: var(--radius-xs);
+    color: var(--slate-900);
+    mix-blend-mode: normal;
+  }
+  .sg-type,
+  .sg-space {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: var(--space-2xs) var(--space-s);
+    align-items: center;
+  }
+  .sg-type > *,
+  .sg-space > * {
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+  }
+  .sg-type small,
+  .sg-space small {
+    grid-column: 2;
+    color: var(--color-text-subtle);
+    font-size: var(--step--2);
+  }
+  .sg-type span {
+    line-height: var(--leading-tight);
+  }
+  .sg-space span {
+    display: block;
+    block-size: 1rem;
+    background: var(--color-highlight);
+    border-radius: var(--radius-xs);
+  }
+  .sg-brand {
+    padding: var(--space-s);
+    border-radius: var(--radius-m);
+  }
+  .sg-icon {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3xs);
+    inline-size: 5rem;
+    font-size: var(--step-2);
+    color: var(--color-accent);
+  }
+  .sg-icon small {
+    font-size: var(--step--2);
+    color: var(--color-text-muted);
+  }
+}
