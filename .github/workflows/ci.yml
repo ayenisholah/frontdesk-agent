@@ -60,6 +60,10 @@ jobs:
         run: npm run db:seed && npm run db:seed
       - run: npm run audit:tokens
       - run: npm run audit:units
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Scan full history for committed secrets
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.24.3 git /repo --no-banner --redact
+
   image:
     needs: verify
     runs-on: ubuntu-latest
