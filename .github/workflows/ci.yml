@@ -49,6 +49,8 @@ jobs:
       - run: npm run typecheck
       - name: Module boundaries
         run: npm run check:deps
+      - name: Duplicated code
+        run: npm run check:dupes
       - run: npm run db:deploy
       - name: Tests with 100% coverage gate
         run: npm run test:coverage
