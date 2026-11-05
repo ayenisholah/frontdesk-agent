@@ -1,4 +1,5 @@
 // LLM loop, tool definitions, guardrails and tracing. Amazon Bedrock behind a ModelClient.
+export { createBedrockClient, type BedrockOptions } from "./bedrock-client";
 export { runTurn, type HandoffReason, type Step, type Turn, type TurnResult } from "./loop";
 export type {
   ChatMessage,
