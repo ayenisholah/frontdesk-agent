@@ -1,0 +1,67 @@
+/* Data table. Wrap in .overflow so wide tables scroll inside their card, never the page. */
+@layer components {
+  .overflow,
+  .table-scroll {
+    inline-size: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+  .table,
+  .admin-table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font-size: var(--step--1);
+    font-variant-numeric: tabular-nums;
+  }
+  .table th,
+  .admin-table th {
+    padding: var(--space-2xs) var(--space-xs);
+    border-block-end: var(--border-thick) solid var(--color-border);
+    text-align: start;
+    font-weight: var(--weight-bold);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+  .table td,
+  .admin-table td {
+    padding: var(--space-xs);
+    border-block-end: var(--border-hairline) solid var(--color-border);
+    vertical-align: top;
+  }
+  .table tbody tr:hover,
+  .admin-table tbody tr:hover {
+    background: var(--color-surface-raised);
+  }
+  .table [data-align="end"],
+  .admin-table [data-align="end"] {
+    text-align: end;
+  }
+  .table a,
+  .admin-table a {
+    font-weight: var(--weight-semibold);
+  }
+
+  /* Card list on narrow containers: tables marked data-stack reflow into labelled rows. */
+  @container (max-width: 40rem) {
+    .table[data-stack] thead {
+      display: none;
+    }
+    .table[data-stack] tr {
+      display: grid;
+      gap: var(--space-3xs);
+      padding-block: var(--space-xs);
+      border-block-end: var(--border-hairline) solid var(--color-border);
+    }
+    .table[data-stack] td {
+      display: grid;
+      grid-template-columns: 8rem 1fr;
+      gap: var(--space-xs);
+      padding: 0;
+      border: 0;
+    }
+    .table[data-stack] td::before {
+      content: attr(data-label);
+      color: var(--color-text-muted);
+    }
+  }
+}

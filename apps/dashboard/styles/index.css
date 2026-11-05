@@ -1,0 +1,17 @@
+/* Frontdesk dashboard stylesheet entry. Order matches the layer order declared in tokens.css:
+   reset, tokens, base, layout, components, patterns, utilities. */
+@import "./tokens.css";
+@import "./reset.css";
+@import "./base.css";
+@import "./layout.css";
+@import "./components/button.css";
+@import "./components/form.css";
+@import "./components/controls.css";
+@import "./components/surface.css";
+@import "./components/feedback.css";
+@import "./components/status.css";
+@import "./components/navigation.css";
+@import "./components/table.css";
+@import "./patterns/thread.css";
+@import "./patterns/trace.css";
+@import "./utilities.css";
