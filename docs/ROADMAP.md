@@ -9,8 +9,8 @@ Work is organised into milestones. Each one closes named requirement IDs and end
 | Milestone | Theme | Status |
 |---|---|---|
 | M0 | Foundation | Done |
-| M1 | Availability and bookings | Next |
-| M2 | Agent core | Planned |
+| M1 | Availability and bookings | Done |
+| M2 | Agent core | Next |
 | M3 | WhatsApp | Planned |
 | M4 | AWS platform | Planned |
 | M5 | Deposits | Planned |
@@ -26,7 +26,7 @@ Work is organised into milestones. Each one closes named requirement IDs and end
 - **Closes:** FR-CF-1, NFR-8 (token pipeline), NFR-10 (test gates), NFR-11 (local stack)
 - **Delivered:** npm workspaces, strict TypeScript, quality gates, CI, design tokens and CSS, Prisma schema, business config schema and seed.
 
-## M1: Availability and bookings
+## M1: Availability and bookings ✅
 
 - **Closes:** FR-BK-1, FR-BK-2, FR-BK-3, FR-BK-4, FR-BK-5
 - **Build:** `packages/core/availability.ts`, pure with no I/O: slots from hours, duration, buffers, capacity, bookings and holds, in the business timezone. Hold creation and replacement (one per conversation, 15-minute TTL), booking from a hold, cancel and reschedule with the policy window. A per-business slot lock, with a lane exclusion constraint as a database backstop, so a race can't double-book ([ADR 0010](adr/0010-booking-concurrency.md)).
