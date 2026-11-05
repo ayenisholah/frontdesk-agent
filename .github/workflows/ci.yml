@@ -54,3 +54,5 @@ jobs:
         run: npm run test:coverage
       - name: Seed is idempotent
         run: npm run db:seed && npm run db:seed
+      - run: npm run audit:tokens
+      - run: npm run audit:units
