@@ -1,0 +1,43 @@
+# Local development stack. Credentials here are local-only placeholders.
+name: frontdesk-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: frontdesk
+      POSTGRES_USER: frontdesk
+      POSTGRES_PASSWORD: frontdesk-local-only
+    ports: ["127.0.0.1:5433:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U frontdesk -d frontdesk"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "frontdesk-local-only", "--appendonly", "yes"]
+    ports: ["127.0.0.1:6380:6379"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "frontdesk-local-only", "--no-auth-warning", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: { context: ., args: { VCS_REF: local } }
+    image: frontdesk-api:local
+    environment:
+      DATABASE_URL: postgresql://frontdesk:frontdesk-local-only@postgres:5432/frontdesk
+      REDIS_URL: redis://:frontdesk-local-only@redis:6379
+    ports: ["127.0.0.1:3110:3110"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  redisdata:
