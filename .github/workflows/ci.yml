@@ -51,6 +51,8 @@ jobs:
         run: npm run check:deps
       - name: Duplicated code
         run: npm run check:dupes
+      - name: Unused code
+        run: npm run check:unused
       - run: npm run db:deploy
       - name: Tests with 100% coverage gate
         run: npm run test:coverage
