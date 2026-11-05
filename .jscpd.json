@@ -1,0 +1,10 @@
+{
+  "threshold": 0,
+  "minLines": 8,
+  "minTokens": 60,
+  "reporters": ["console"],
+  "pattern": "**/*.{ts,mjs}",
+  "path": ["apps", "packages", "scripts", "design"],
+  "ignore": ["**/generated/**", "**/dist/**", "**/node_modules/**", "**/migrations/**"],
+  "gitignore": true
+}
