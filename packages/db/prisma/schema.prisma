@@ -1,0 +1,285 @@
+// Frontdesk data model. Money is integer cents; every timestamp is timestamptz (UTC instants,
+// rendered in Business.timezone). Constraints that Prisma can't express (no overlapping bookings,
+// one active hold per conversation) are added as raw SQL migrations.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Channel {
+  whatsapp
+  sms
+}
+
+enum ConversationStatus {
+  agent
+  owner
+  closed
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+}
+
+enum MessageAuthor {
+  customer
+  agent
+  owner
+  system
+}
+
+enum HoldStatus {
+  active
+  converted
+  released
+  expired
+}
+
+enum BookingStatus {
+  pending_deposit
+  confirmed
+  cancelled
+  completed
+  no_show
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  expired
+  failed
+}
+
+enum RunOutcome {
+  replied
+  handoff
+  budget_exceeded
+  error
+}
+
+model Business {
+  id                      String   @id @default(uuid()) @db.Uuid
+  slug                    String   @unique
+  name                    String
+  timezone                String
+  currency                String   @db.Char(3)
+  capacity                Int
+  bufferBeforeMinutes     Int
+  bufferAfterMinutes      Int
+  cancellationWindowHours Int
+  /// [{ question, answer }], validated by @frontdesk/core businessConfigSchema.
+  faq                     Json
+  /// { style, notes? }
+  tone                    Json
+  createdAt               DateTime @default(now()) @db.Timestamptz
+  updatedAt               DateTime @updatedAt @db.Timestamptz
+
+  services      Service[]
+  openingHours  OpeningHours[]
+  customers     Customer[]
+  conversations Conversation[]
+  holds         Hold[]
+  bookings      Booking[]
+}
+
+model Service {
+  id              String   @id @default(uuid()) @db.Uuid
+  businessId      String   @db.Uuid
+  /// Stable slug from config (e.g. "groom-single-coat"); the agent's tools refer to this.
+  key             String
+  name            String
+  durationMinutes Int
+  priceCents      Int
+  depositCents    Int
+  position        Int
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @db.Timestamptz
+  updatedAt       DateTime @updatedAt @db.Timestamptz
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  holds    Hold[]
+  bookings Booking[]
+
+  @@unique([businessId, key])
+}
+
+model OpeningHours {
+  id          String @id @default(uuid()) @db.Uuid
+  businessId  String @db.Uuid
+  /// 0 = Sunday … 6 = Saturday, in Business.timezone.
+  weekday     Int
+  /// Minutes after local midnight.
+  openMinute  Int
+  closeMinute Int
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, weekday])
+}
+
+model Customer {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @db.Uuid
+  /// E.164, normalised by @frontdesk/core normalizePhone.
+  phone      String
+  channel    Channel
+  name       String?
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @updatedAt @db.Timestamptz
+
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  bookings      Booking[]
+
+  @@unique([businessId, phone])
+}
+
+model Conversation {
+  id                    String             @id @default(uuid()) @db.Uuid
+  businessId            String             @db.Uuid
+  customerId            String             @db.Uuid
+  channel               Channel
+  status                ConversationStatus @default(agent)
+  /// Last inbound customer message; outbound free-form replies need it within 24 hours.
+  lastCustomerMessageAt DateTime?          @db.Timestamptz
+  handoffReason         String?
+  createdAt             DateTime           @default(now()) @db.Timestamptz
+  updatedAt             DateTime           @updatedAt @db.Timestamptz
+
+  business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer  Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  holds     Hold[]
+  agentRuns AgentRun[]
+
+  @@index([businessId, status, updatedAt])
+  @@index([customerId])
+}
+
+model Message {
+  id                String           @id @default(uuid()) @db.Uuid
+  conversationId    String           @db.Uuid
+  direction         MessageDirection
+  author            MessageAuthor
+  channel           Channel
+  /// The provider's own id (WhatsApp wamid, Twilio SID); null until an outbound send is accepted.
+  providerMessageId String?
+  body              String
+  createdAt         DateTime         @default(now()) @db.Timestamptz
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  /// Webhook dedupe (NFR-2): the same provider message is stored once.
+  @@unique([channel, providerMessageId])
+  @@index([conversationId, createdAt])
+}
+
+model Hold {
+  id             String     @id @default(uuid()) @db.Uuid
+  businessId     String     @db.Uuid
+  conversationId String     @db.Uuid
+  serviceId      String     @db.Uuid
+  startsAt       DateTime   @db.Timestamptz
+  endsAt         DateTime   @db.Timestamptz
+  expiresAt      DateTime   @db.Timestamptz
+  status         HoldStatus @default(active)
+  createdAt      DateTime   @default(now()) @db.Timestamptz
+
+  business     Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  service      Service      @relation(fields: [serviceId], references: [id])
+  booking      Booking?
+
+  @@index([businessId, startsAt])
+  @@index([conversationId, status])
+  @@index([status, expiresAt])
+}
+
+model Booking {
+  id           String        @id @default(uuid()) @db.Uuid
+  businessId   String        @db.Uuid
+  customerId   String        @db.Uuid
+  serviceId    String        @db.Uuid
+  holdId       String?       @unique @db.Uuid
+  startsAt     DateTime      @db.Timestamptz
+  endsAt       DateTime      @db.Timestamptz
+  status       BookingStatus @default(pending_deposit)
+  /// Copied from config at booking time, so later price edits don't change this booking.
+  priceCents   Int
+  depositCents Int
+  cancelledAt  DateTime?     @db.Timestamptz
+  createdAt    DateTime      @default(now()) @db.Timestamptz
+  updatedAt    DateTime      @updatedAt @db.Timestamptz
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  service  Service   @relation(fields: [serviceId], references: [id])
+  hold     Hold?     @relation(fields: [holdId], references: [id])
+  payments Payment[]
+
+  @@index([businessId, startsAt])
+  @@index([customerId])
+}
+
+model Payment {
+  id              String        @id @default(uuid()) @db.Uuid
+  bookingId       String        @db.Uuid
+  stripeSessionId String        @unique
+  amountCents     Int
+  currency        String        @db.Char(3)
+  status          PaymentStatus @default(pending)
+  paidAt          DateTime?     @db.Timestamptz
+  createdAt       DateTime      @default(now()) @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @db.Timestamptz
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+}
+
+/// One per inbound customer turn (NFR-6).
+model AgentRun {
+  id               String      @id @default(uuid()) @db.Uuid
+  conversationId   String      @db.Uuid
+  /// The inbound Message that triggered this run.
+  triggerMessageId String?     @db.Uuid
+  model            String
+  promptVersion    String
+  inputTokens      Int         @default(0)
+  outputTokens     Int         @default(0)
+  /// Cost in millionths of a US dollar, to keep sub-cent precision in integers.
+  costMicros       Int         @default(0)
+  latencyMs        Int?
+  outcome          RunOutcome?
+  startedAt        DateTime    @default(now()) @db.Timestamptz
+  finishedAt       DateTime?   @db.Timestamptz
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  steps        AgentStep[]
+
+  @@index([conversationId, startedAt])
+}
+
+model AgentStep {
+  id        String   @id @default(uuid()) @db.Uuid
+  runId     String   @db.Uuid
+  /// 0-based position within the run.
+  index     Int
+  tool      String
+  input     Json
+  output    Json?
+  error     String?
+  latencyMs Int?
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, index])
+}
