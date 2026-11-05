@@ -7,6 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1163.0",
     "zod": "^4.6.7"
   }
 }
