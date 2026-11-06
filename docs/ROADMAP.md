@@ -50,7 +50,7 @@ Implemented: signature-verified webhook intake, tenant registration, message ded
 
 ## M4: AWS platform
 
-The CDK workspace, retained image repositories, configuration validation and offline synthesis/security gates are implemented. Network, compute, data stacks and deployment remain planned. See [AWS foundation](AWS_FOUNDATION.md).
+The CDK workspace, retained image repositories, configuration validation and offline synthesis/security gates are implemented. The network, scoped security groups, flow logs and ECS cluster are implemented. Data services and deployment remain planned. See [AWS foundation](AWS_FOUNDATION.md).
 
 - **Closes:** NFR-11
 - **Build:** CDK stacks for the network, ECS Fargate services behind an ALB, RDS Postgres, ElastiCache, Secrets Manager and Bedrock access. A `deploy.yml` GitHub Actions workflow using OIDC. Move `trust proxy` in `apps/api/src/app.ts` from `loopback` to the ALB. Alarms, SLOs, runbooks and a cost report. Cut over from the legacy server, then remove `deploy/` and its GitHub secrets.
