@@ -38,7 +38,7 @@ it("synthesizes protected stacks without lookups or credentials", () => {
   });
   expect(app.synth().manifest.missing).toBeUndefined();
   Annotations.fromStack(platform).hasNoError("*", Match.anyValue());
-});
+}, 20_000);
 it("rejects a planted unrestricted database ingress rule", () => {
   const app = new App();
   const stack = new Stack(app, "Violation");

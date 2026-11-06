@@ -60,7 +60,7 @@ Internet ─► ALB ─► ECS Fargate: api, dashboard
           Secrets Manager · ECR · CloudWatch
 ```
 
-Decisions are in [ADR 0002](adr/0002-aws-ecs-fargate.md), [0003](adr/0003-cdk-infrastructure.md), [0004](adr/0004-bedrock-model-provider.md) and [0008](adr/0008-github-actions-oidc-deploy.md). Milestone M4 builds this. Production currently runs on a legacy server that no longer receives deploys.
+Decisions are in [ADR 0002](adr/0002-aws-ecs-fargate.md), [0003](adr/0003-cdk-infrastructure.md), [0004](adr/0004-bedrock-model-provider.md) and [0008](adr/0008-github-actions-oidc-deploy.md). M4.1 now defines the network, ECS cluster, image repositories and protected data services as tested CDK stacks; running services and deployment remain planned. Production currently runs on a legacy server that no longer receives deploys.
 
 ## Failure behaviour
 
