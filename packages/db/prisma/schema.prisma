@@ -179,6 +179,8 @@ model Message {
   body              String
   createdAt         DateTime         @default(now()) @db.Timestamptz
 
+  redactedAt DateTime? @db.Timestamptz
+
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   inboundWork InboundWork?
   outboundWork OutboundWork?
@@ -186,6 +188,7 @@ model Message {
   /// Webhook dedupe (NFR-2): the same provider message is stored once.
   @@unique([channel, providerMessageId])
   @@index([conversationId, createdAt])
+  @@index([redactedAt, createdAt])
 }
 
 model Hold {
@@ -276,12 +279,15 @@ model AgentRun {
   startedAt        DateTime    @default(now()) @db.Timestamptz
   finishedAt       DateTime?   @db.Timestamptz
 
+  redactedAt DateTime? @db.Timestamptz
+
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   steps        AgentStep[]
   executions   ToolExecution[]
   usage        AgentUsage[]
 
   @@index([conversationId, startedAt])
+  @@index([redactedAt, startedAt])
   @@unique([conversationId, triggerMessageId])
 }
 

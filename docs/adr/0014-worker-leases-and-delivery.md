@@ -39,6 +39,6 @@ calls. Operators must configure sender credentials, templates and owner destinat
 before enabling delivery. Content retention must preserve deduplication tombstones.
 
 Inbox leasing, queue adapters, agent write fencing, interruption recovery and atomic
-reply persistence and outbound delivery adapters are implemented. Retention and
-executable runtime follow in separate PRs.
+reply persistence, outbound delivery and batched retention adapters are implemented.
+Executable runtime follows in a separate PR.
 The roadmap and development guide record which parts are currently implemented.

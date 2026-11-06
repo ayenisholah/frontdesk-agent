@@ -58,6 +58,7 @@ async function loadMessages(tx: Tx, scope: AgentScope, trigger: { id: string; cr
   const rows = await tx.message.findMany({
     where: {
       conversationId: scope.conversationId,
+      redactedAt: null,
       conversation: { businessId: scope.businessId },
       OR: [
         { createdAt: { lt: trigger.createdAt } },
@@ -86,7 +87,7 @@ async function loadWorkerMessages(tx: Tx, scope: AgentScope): Promise<ChatMessag
   const rows = await tx.inboundWork.findMany({
     where: {
       businessId: scope.businessId,
-      message: { conversationId: scope.conversationId },
+      message: { conversationId: scope.conversationId, redactedAt: null },
       OR: [
         { sequence: BigInt(scope.lease!.sequence) },
         { sequence: { lt: BigInt(scope.lease!.sequence) }, state: "done" },

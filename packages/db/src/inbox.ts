@@ -1,3 +1,4 @@
+import { DEFAULT_RETENTION_DAYS, retentionCutoff } from "@frontdesk/core";
 import type { Db } from "./client";
 import type { Prisma } from "./generated/client";
 import { withSlotLock, type Clock } from "./slots";
@@ -20,10 +21,10 @@ const leaseUntil = (now: Date) => new Date(now.getTime() + 90_000);
 
 async function claim(
   db: Db,
-  businessId: string,
   sequence: string,
-  clock: Clock,
+  context: { businessId: string; clock: Clock; retentionDays: number },
 ): Promise<InboxClaim> {
+  const { businessId, clock, retentionDays } = context;
   const id = inboxId(sequence);
   return withSlotLock(db, businessId, clock, async (tx, now) => {
     const row = await tx.inboundWork.findFirst({
@@ -34,6 +35,13 @@ async function claim(
     if (!unfinished.includes(row.state)) return { state: "terminal" };
     if (row.nextAttemptAt > now || (row.leaseUntil && row.leaseUntil > now))
       return { state: "busy" };
+    if (row.message.redactedAt || row.message.createdAt <= retentionCutoff(now, retentionDays)) {
+      await tx.inboundWork.update({
+        where: { sequence: id, businessId },
+        data: { state: "skipped", reason: "content_expired", leaseUntil: null, finishedAt: now },
+      });
+      return { state: "terminal" };
+    }
     const { conversation } = row.message;
     const earlier = await tx.inboundWork.findFirst({
       where: {
@@ -65,7 +73,12 @@ async function claim(
   });
 }
 
-export function createInboxStore(db: Db, businessId: string, clock: Clock) {
+export function createInboxStore(
+  db: Db,
+  businessId: string,
+  clock: Clock,
+  retentionDays = DEFAULT_RETENTION_DAYS,
+) {
   const mutate = (
     lease: InboxLease,
     data: (now: Date) => Prisma.InboundWorkUpdateManyMutationInput,
@@ -99,7 +112,7 @@ export function createInboxStore(db: Db, businessId: string, clock: Clock) {
         ORDER BY w.sequence LIMIT 100`;
       return rows.map((row) => ({ businessId, sequence: String(row.sequence) }));
     },
-    claim: (sequence: string) => claim(db, businessId, sequence, clock),
+    claim: (sequence: string) => claim(db, sequence, { businessId, clock, retentionDays }),
     renew: (lease: InboxLease) => mutate(lease, (now) => ({ leaseUntil: leaseUntil(now) })),
     complete: (lease: InboxLease, state: "done" | "skipped", reason: string | null = null) =>
       mutate(lease, (now) => ({ state, reason, finishedAt: now, leaseUntil: null })),

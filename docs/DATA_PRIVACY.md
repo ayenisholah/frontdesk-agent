@@ -31,7 +31,20 @@ timestamps without duplicating message content, and is deleted with its message.
 - `AgentStep`, `ToolExecution` and `AgentRun.reply` content must follow the same limit, because they can contain message text.
 - Booking and payment records may need longer retention for accounting; decide before the pilot.
 
-The retention job is **planned** (M3). Until it exists, no real customer data goes into the system.
+The tenant-scoped retention adapter is implemented with bounded batches. It redacts
+message bodies, run replies, step inputs/outputs and tool results/signatures, while
+keeping IDs, timestamps, outcomes and usage. Message/provider IDs remain as
+redacted deduplication tombstones. Booking/payment records and contact identity
+are retained separately; retention never cancels or recreates a booking.
+
+Active inbox/send leases and recent unfinished turns delay redaction. Expired
+unfinished runs are closed and handed off without replaying tools. Pending work
+is made terminal, and both claim and send paths independently reject expired or
+redacted content even before cleanup runs. Abandoned sends remain uncertain and
+can still reconcile provider statuses using retained metadata.
+
+Daily scheduling is **planned** for the executable worker (M3). Until that worker
+is configured and verified, no real customer data goes into the system.
 
 ## Deletion
 

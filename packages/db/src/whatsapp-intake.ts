@@ -19,7 +19,7 @@ async function checkDuplicate(
   if (!existing) return null;
   const same =
     existing.conversation.customer.phone === message.phone &&
-    existing.body === message.body &&
+    (existing.redactedAt !== null || existing.body === message.body) &&
     existing.inboundWork?.phoneNumberId === message.phoneNumberId;
   return same ? "duplicate" : "conflict";
 }

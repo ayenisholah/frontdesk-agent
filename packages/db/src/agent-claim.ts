@@ -25,6 +25,7 @@ export function claimTurn(
       },
     });
     if (!message) throw new Error("Message unavailable");
+    if (message.redactedAt) return { state: "silent" };
     const work = await claimInbox(tx, scope, messageId, now);
     if (conversation.status !== "agent") return { state: "silent" };
     const existing = await tx.agentRun.findUnique({

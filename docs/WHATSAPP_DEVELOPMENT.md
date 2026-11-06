@@ -4,7 +4,7 @@ M3 currently implements authenticated webhook intake and a durable Postgres inbo
 Queue adapters and database lease primitives are available and integration-tested,
 but the executable worker is not yet wired. The API does not invoke the agent or
 send replies. Keep it disabled
-for real traffic until workers, outbound policy checks and retention are implemented.
+for real traffic until the executable worker and daily retention schedule are configured.
 Bedrock authorization and live M2 acceptance are deferred.
 
 ## Local setup
@@ -167,3 +167,16 @@ npm run whatsapp:delivery -- --business-id BUSINESS_UUID --resolve-id OUTBOUND_U
 Inspection returns recent internal IDs, states, attempts, reasons and timestamps,
 never phone numbers or message bodies. Resolution only accepts uncertain work and
 never calls the provider. There is no public administration endpoint.
+
+## Content retention
+
+`redactBusinessContent` processes bounded tenant-scoped batches, defaulting to
+90 days and 100 messages/runs per batch. It preserves deduplication IDs, usage,
+outcomes, timestamps, bookings and contact identity. It redacts message bodies,
+run replies, step inputs/outputs, and tool signatures/results. Live leases delay
+cleanup; expired unfinished runs close without replaying tools.
+
+Inbox claims and outbound sends independently enforce the configured retention
+limit and reject redacted records. Redelivery of a redacted provider message uses
+its tenant/sender/recipient tombstone without comparing the removed body.
+The executable worker's daily scheduling remains the next integration step.
