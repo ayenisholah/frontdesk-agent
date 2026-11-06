@@ -107,7 +107,7 @@ export function createBedrockClient(options: BedrockOptions): ModelClient {
         throw new ModelFailure(abortSignal.aborted ? "timeout" : "unavailable");
       }
       if (output.stopReason && !["end_turn", "tool_use"].includes(output.stopReason)) {
-        throw new ModelFailure("invalid_response");
+        throw new ModelFailure("invalid_response", fromConverse(output).usage);
       }
       return fromConverse(output);
     },

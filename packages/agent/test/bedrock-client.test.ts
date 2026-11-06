@@ -192,3 +192,14 @@ it("sanitizes provider errors and refuses truncated responses", async () => {
     stub({ stopReason: "end_turn" }).client.complete(request([])),
   ).resolves.toBeDefined();
 });
+
+it("preserves reported usage when rejecting a truncated completion", async () => {
+  const { client } = stub({
+    stopReason: "max_tokens",
+    usage: { inputTokens: 20, outputTokens: 10, totalTokens: 30 },
+  });
+  await expect(client.complete(request([]))).rejects.toMatchObject({
+    code: "invalid_response",
+    usage: { inputTokens: 20, outputTokens: 10 },
+  });
+});

@@ -188,3 +188,34 @@ it("hands off when a failed unknown tool has no trusted reply", async () => {
   options.model = fakeModel([{ toolCalls: [call("nope")] }, { text: "ok" }]).client;
   expect((await run()).handoff).toBe("unknown_question");
 });
+
+it("records unusable classifier usage without treating it as a successful classification", async () => {
+  const { ModelFailure } = await import("../src/index");
+  const { options, run, store } = setup();
+  options.classifier = {
+    complete: vi
+      .fn()
+      .mockRejectedValue(
+        new ModelFailure("invalid_response", { inputTokens: 20, outputTokens: 10 }),
+      ),
+  };
+  expect((await run()).handoff).toBe("model_error");
+  expect(store.recordUsage).toHaveBeenCalledWith("run", {
+    modelId: "eu.small",
+    usage: { inputTokens: 20, outputTokens: 10 },
+    costMicros: 70,
+    ratesVersion: "test",
+  });
+});
+
+it("propagates storage failures while recording rejected classifier usage", async () => {
+  const { ModelFailure } = await import("../src/index");
+  const { options, run, store } = setup();
+  options.classifier = {
+    complete: vi
+      .fn()
+      .mockRejectedValue(new ModelFailure("invalid_response", { inputTokens: 1, outputTokens: 1 })),
+  };
+  vi.mocked(store.recordUsage).mockRejectedValue(new Error("store down"));
+  await expect(run()).rejects.toThrow("store down");
+});
