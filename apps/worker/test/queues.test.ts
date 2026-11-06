@@ -22,6 +22,19 @@ describe.skipIf(!url)("BullMQ transport", () => {
         timeout: 5000,
       });
       expect(handle).toHaveBeenCalledTimes(1);
+      handle.mockRejectedValueOnce(new Error("private provider payload"));
+      const failed = await queues.inbound.add(
+        "inbound",
+        { ...ref, sequence: "2" },
+        { jobId: "failure" },
+      );
+      await vi.waitFor(
+        async () =>
+          expect((await queues.inbound.getJob(failed.id!))?.failedReason).toBe(
+            "Inbound processing failed",
+          ),
+        { timeout: 5000 },
+      );
       const emitters: { emit(event: "error", error: Error): boolean }[] = [
         queues.inbound,
         queues.outbound,
@@ -39,5 +52,5 @@ describe.skipIf(!url)("BullMQ transport", () => {
     } finally {
       await queues.close();
     }
-  });
+  }, 20_000);
 });

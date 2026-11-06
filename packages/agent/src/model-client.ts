@@ -17,6 +17,7 @@ export type ModelRequest = {
   messages: ChatMessage[];
   tools: ToolSpec[];
   maxTokens: number;
+  signal?: AbortSignal;
 };
 
 export type Usage = { inputTokens: number; outputTokens: number };

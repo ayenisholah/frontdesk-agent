@@ -29,7 +29,11 @@ export function createQueues(options: { url: string; prefix: string; report: () 
         async (job) => {
           const parsed = jobSchema.safeParse(job.data);
           if (!parsed.success) throw new Error("Invalid queue payload");
-          await handle(parsed.data);
+          try {
+            await handle(parsed.data);
+          } catch {
+            throw new Error("Inbound processing failed");
+          }
         },
         { connection: consumer, prefix: options.prefix, concurrency: 4 },
       );

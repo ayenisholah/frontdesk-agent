@@ -54,6 +54,7 @@ export async function loadSnapshot(
 }
 
 async function loadMessages(tx: Tx, scope: AgentScope, trigger: { id: string; createdAt: Date }) {
+  if (scope.lease) return loadWorkerMessages(tx, scope);
   const rows = await tx.message.findMany({
     where: {
       conversationId: scope.conversationId,
@@ -79,4 +80,28 @@ async function loadMessages(tx: Tx, scope: AgentScope, trigger: { id: string; cr
       messages.findIndex((m) => m.role === "user"),
     ),
   );
+}
+
+async function loadWorkerMessages(tx: Tx, scope: AgentScope): Promise<ChatMessage[]> {
+  const rows = await tx.inboundWork.findMany({
+    where: {
+      businessId: scope.businessId,
+      message: { conversationId: scope.conversationId },
+      OR: [
+        { sequence: BigInt(scope.lease!.sequence) },
+        { sequence: { lt: BigInt(scope.lease!.sequence) }, state: "done" },
+      ],
+    },
+    orderBy: { sequence: "desc" },
+    take: 21,
+    include: { message: true, reply: { include: { message: true } } },
+  });
+  return rows
+    .reverse()
+    .flatMap((row): ChatMessage[] => [
+      { role: "user", text: row.message.body },
+      ...(row.reply
+        ? [{ role: "assistant" as const, text: row.reply.message.body, toolCalls: [] }]
+        : []),
+    ]);
 }

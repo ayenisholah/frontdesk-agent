@@ -38,6 +38,7 @@ The per-business database lock serializes short state transitions only, not mode
 calls. Operators must configure sender credentials, templates and owner destinations
 before enabling delivery. Content retention must preserve deduplication tombstones.
 
-Implementation is staged: inbox leasing and queue adapters land first; agent write
-fencing, recovery, delivery, retention and executable runtime follow in separate PRs.
+Inbox leasing, queue adapters, agent write fencing, interruption recovery and atomic
+reply persistence are implemented. Delivery, retention and executable runtime
+follow in separate PRs.
 The roadmap and development guide record which parts are currently implemented.

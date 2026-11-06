@@ -90,10 +90,28 @@ while consumers reconnect. Job payloads are strict identifier-only objects.
 Inbox claims have a 90-second lease and an increasing ownership token. Renewal,
 completion and pre-start retries verify the live token under a database lock.
 Pre-start failures back off and become terminal after five claims. Reclaimed work
-is marked as recovered so the upcoming agent worker can hand off instead of replaying
-a partially executed model turn. Agent-store fencing and automatic renewal remain
-part of that next integration step.
+is marked as recovered so the agent worker can hand off instead of replaying
+a partially executed model turn. Agent-store writes also verify the lease.
 
 Queue integration tests require `REDIS_URL` as well as `DATABASE_URL`; they use unique
 Redis prefixes and isolated databases. CI supplies both services. The local Redis
 configuration uses `noeviction`. Run the complete gate with both URLs exported.
+
+## Agent worker
+
+The worker adapter executes `runConversationTurn` for claimed text messages. It
+renews the 90-second lease every 20 seconds, cancels inference on renewal failure,
+and bounds a whole turn to five minutes. The Bedrock adapter combines caller
+cancellation with its existing request timeout and keeps its three-attempt SDK
+retry limit. Worker-owned runs cannot be mutated without their current lease.
+
+An interrupted run is finished as an error and handed to the owner without replaying
+model calls or tools. Completed tool effects remain intact. Owner-controlled and
+closed threads are skipped, except the final reply from the agent's own handoff.
+Unsupported input receives a fixed request for text without calling a model.
+
+Finishing a worker turn commits its run, reply, outbound work and inbox completion
+in one transaction. History follows inbox sequence and includes replies from prior
+completed turns, excluding future queued messages. CLI sandbox turns retain their
+existing history behavior. Outbound work is durable but delivery remains planned;
+there is no executable worker service or live sending enabled yet.

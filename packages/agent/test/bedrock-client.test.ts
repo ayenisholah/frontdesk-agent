@@ -203,3 +203,16 @@ it("preserves reported usage when rejecting a truncated completion", async () =>
     usage: { inputTokens: 20, outputTokens: 10 },
   });
 });
+
+it("combines caller cancellation with its provider deadline", async () => {
+  const controller = new AbortController();
+  const send = vi.fn(async (_command, options: { abortSignal: AbortSignal }) => {
+    controller.abort();
+    expect(options.abortSignal.aborted).toBe(true);
+    throw new Error("cancelled");
+  });
+  const client = createBedrockClient({ region: "eu-west-1", modelId: MODEL, sender: { send } });
+  await expect(client.complete({ ...request([]), signal: controller.signal })).rejects.toThrow(
+    "Model timeout",
+  );
+});

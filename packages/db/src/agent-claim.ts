@@ -1,5 +1,7 @@
 import type { ClaimResult, RunInfo } from "@frontdesk/agent";
-import type { Db } from "./client";
+import { leasedInbox } from "./worker-reply";
+import { LeaseLost } from "./inbox-lease";
+import type { Db, Tx } from "./client";
 import { scopedConversation, type AgentScope } from "./agent-scope";
 import { loadSnapshot } from "./agent-snapshot";
 import { withSlotLock, type Clock } from "./slots";
@@ -23,6 +25,7 @@ export function claimTurn(
       },
     });
     if (!message) throw new Error("Message unavailable");
+    const work = await claimInbox(tx, scope, messageId, now);
     if (conversation.status !== "agent") return { state: "silent" };
     const existing = await tx.agentRun.findUnique({
       where: {
@@ -43,6 +46,7 @@ export function claimTurn(
     const run = await tx.agentRun.create({
       data: {
         ...info,
+        inboxSequence: work?.sequence,
         conversationId: scope.conversationId,
         triggerMessageId: messageId,
         startedAt: now,
@@ -54,4 +58,15 @@ export function claimTurn(
       snapshot: await loadSnapshot(tx, scope, message, now),
     };
   });
+}
+
+async function claimInbox(tx: Tx, scope: AgentScope, messageId: string, now: Date) {
+  const work = await tx.inboundWork.findFirst({
+    where: { businessId: scope.businessId, messageId },
+  });
+  if (work) {
+    const leased = await leasedInbox(tx, scope, now);
+    if (leased.messageId !== messageId) throw new LeaseLost();
+  } else if (scope.lease) throw new LeaseLost();
+  return work;
 }

@@ -14,7 +14,7 @@ function mutate<T>(
 ): Promise<T> {
   const { db, scope, clock } = dependencies;
   return withSlotLock(db, scope.businessId, clock, async (tx, now) => {
-    await scopedRun(tx, scope, execution.runId);
+    await scopedRun(tx, scope, execution.runId, now);
     const previous = await tx.toolExecution.findUnique({
       where: { runId_callId: { runId: execution.runId, callId: execution.callId } },
     });

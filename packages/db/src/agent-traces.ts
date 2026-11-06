@@ -1,5 +1,6 @@
 import type { RunFinish, Step, UsageRecord } from "@frontdesk/agent";
 import { Prisma } from "./generated/client";
+import { queueReply } from "./worker-reply";
 import type { Tx } from "./client";
 import { scopedConversation, type AgentScope } from "./agent-scope";
 
@@ -56,7 +57,7 @@ export async function finishRun(
       finishedAt: now,
     },
   });
-  await tx.message.create({
+  const message = await tx.message.create({
     data: {
       conversationId: scope.conversationId,
       channel: conversation.channel,
@@ -66,6 +67,11 @@ export async function finishRun(
       createdAt: now,
     },
   });
+  if (scope.lease)
+    await queueReply(tx, scope, now, {
+      messageId: message.id,
+      allowOwner: Boolean(result.handoff),
+    });
 }
 export async function taskFailure(
   tx: Tx,
