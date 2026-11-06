@@ -12,3 +12,5 @@ export {
 export { placeHold, releaseExpired, type HoldResult } from "./holds";
 export type { Clock } from "./slots";
 export * from "./generated/enums";
+export { createToolStore } from "./agent-tools";
+export type { AgentScope } from "./agent-scope";

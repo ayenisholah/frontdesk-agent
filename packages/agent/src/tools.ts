@@ -8,7 +8,7 @@ export type Tool<Context> = {
   description: string;
   /** Use z.strictObject, so unknown fields are refused. */
   schema: z.ZodType;
-  run: (input: never, context: Context) => Promise<unknown>;
+  run: (input: never, context: Context, callId: string) => Promise<unknown>;
 };
 
 /** Keeps a tool's input type tied to its schema. */
@@ -16,7 +16,7 @@ export function defineTool<Context, Schema extends z.ZodType>(tool: {
   name: string;
   description: string;
   schema: Schema;
-  run: (input: z.output<Schema>, context: Context) => Promise<unknown>;
+  run: (input: z.output<Schema>, context: Context, callId: string) => Promise<unknown>;
 }): Tool<Context> {
   return tool;
 }
@@ -49,7 +49,7 @@ export async function runTool<Context>(
   const parsed = tool.schema.safeParse(call.input);
   if (!parsed.success) return failure(call.id, `Invalid input: ${z.prettifyError(parsed.error)}`);
   try {
-    const content = await tool.run(parsed.data as never, context);
+    const content = await tool.run(parsed.data as never, context, call.id);
     return { toolCallId: call.id, content, isError: false };
   } catch {
     return failure(call.id, "The tool failed. Don't retry it; hand off to the owner.");

@@ -10,7 +10,7 @@ Work is organised into milestones. Each one closes named requirement IDs and end
 |---|---|---|
 | M0 | Foundation | Done |
 | M1 | Availability and bookings | Done |
-| M2 | Agent core | Next |
+| M2 | Agent core | In progress |
 | M3 | WhatsApp | Planned |
 | M4 | AWS platform | Planned |
 | M5 | Deposits | Planned |
@@ -33,6 +33,8 @@ Work is organised into milestones. Each one closes named requirement IDs and end
 - **Done when:** unit tests pass for closed day, end-past-close, buffer, capacity 2, hold blocking and DST, plus one concurrent double-booking test.
 
 ## M2: Agent core
+
+Implemented: model loop, Bedrock adapter, validated runtime configuration and business tools with a tenant-scoped Postgres adapter. Hold and handoff executions are replay-safe. Conversation orchestration, trace persistence, CLI and evals remain planned.
 
 - **Closes:** FR-AG-1, FR-AG-2, FR-AG-3, FR-AG-4, FR-HO-2, GR-1, GR-2, GR-5, GR-7, NFR-4, NFR-6
 - **Build:** a `ModelClient` interface with an Amazon Bedrock Converse adapter (step cap, tool errors returned to the model, timeout). Tools `get_services`, `check_availability`, `hold_slot`, `answer_faq` and `handoff_to_owner`, each with a Zod schema and a policy check. `AgentRun` and `AgentStep` persistence, a token budget, forced handoff triggers, a system prompt that treats customer text as data, `npm run chat` for CLI conversations, and the first 10 eval scenarios.

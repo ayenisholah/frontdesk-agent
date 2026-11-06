@@ -16,7 +16,7 @@ Provider webhooks into `api` · customer text into the model · model output int
 | --- | --- | --- | --- |
 | T-1 | Forged WhatsApp or Stripe webhook (Spoofing) | Signature verification before any processing (FR-CH-1, FR-PY-2) | Planned, M3 and M5 |
 | T-2 | Replayed webhook causes a second effect (Tampering) | Dedupe by provider id; `Message` is unique on channel and provider id (NFR-2) | Partial: constraint exists, handlers planned |
-| T-3 | Prompt injection changes price or policy (Tampering) | Prices from config; tool policies ignore customer claims (GR-1, GR-7) | Planned, M2 |
+| T-3 | Prompt injection changes price or policy (Tampering) | Prices from config; tool policies ignore customer claims (GR-1, GR-7) | Partial: tool policies and configured replies implemented; orchestration/evals planned |
 | T-4 | Model invents a slot or confirms unpaid booking (Tampering) | Engine revalidates slots; only the payments worker confirms (GR-2, GR-3) | Planned, M2 and M5 |
 | T-5 | One business reads another's data (Information disclosure) | Business-scoped queries and session checks (FR-DB-1) | Planned, M7 |
 | T-6 | Message bodies or phone numbers leak into logs (Information disclosure) | Log rules and a scrub test (NFR-5) | Partial: rule documented, test planned |

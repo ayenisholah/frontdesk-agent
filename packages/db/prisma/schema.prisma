@@ -268,6 +268,7 @@ model AgentRun {
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   steps        AgentStep[]
+  executions   ToolExecution[]
 
   @@index([conversationId, startedAt])
 }
@@ -287,4 +288,16 @@ model AgentStep {
   run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
 
   @@unique([runId, index])
+}
+
+/// Results are committed atomically with side effects; retries cannot extend a hold.
+model ToolExecution {
+  id String @id @default(uuid()) @db.Uuid
+  runId String @db.Uuid
+  callId String
+  signature String
+  result Json
+  createdAt DateTime @default(now()) @db.Timestamptz
+  run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  @@unique([runId, callId])
 }

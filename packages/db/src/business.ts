@@ -7,7 +7,7 @@ import {
   minuteOfDay,
   type BusinessConfig,
 } from "@frontdesk/core";
-import type { Db } from "./client";
+import type { Db, Tx } from "./client";
 import { lockSlots } from "./slots";
 
 /**
@@ -75,7 +75,10 @@ export async function saveBusinessConfig(db: Db, input: BusinessConfig): Promise
 }
 
 /** Loads a business's config by slug, or null if there is none. Throws if the stored data is invalid. */
-export async function loadBusinessConfig(db: Db, slug: string): Promise<BusinessConfig | null> {
+export async function loadBusinessConfig(
+  db: Db | Tx,
+  slug: string,
+): Promise<BusinessConfig | null> {
   const b = await db.business.findUnique({
     where: { slug },
     include: {
