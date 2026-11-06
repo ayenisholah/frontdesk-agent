@@ -29,6 +29,9 @@
     "infra": {
       "entry": ["bin/app.ts"],
       "project": ["src/**", "test/**", "bin/**"]
+    },
+    "packages/runtime": {
+      "project": ["src/**", "test/**"]
     }
   }
 }

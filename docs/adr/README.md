@@ -18,3 +18,4 @@ Each record captures one decision, its context and its consequences. Records are
 | [0013](0013-whatsapp-durable-intake.md) | Verified WhatsApp intake and durable inbox | Accepted |
 | [0014](0014-worker-leases-and-delivery.md) | Worker leases, recovery and durable delivery | Accepted |
 | [0015](0015-aws-pilot-foundation.md) | Offline AWS pilot foundation | Accepted |
+| [0016](0016-aws-runtime-preparation.md) | Separate runtime and migration privileges | Accepted |

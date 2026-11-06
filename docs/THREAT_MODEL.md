@@ -34,6 +34,10 @@ Provider webhooks into `api` · customer text into the model · model output int
 - **Agent traces hold customer text.** `AgentStep` stores tool inputs and outputs, so retention and access rules must cover it. See [Data privacy](DATA_PRIVACY.md).
 - **The legacy server** stays reachable but receives no deploys until cutover, so it gets no application fixes. Don't put real customer data on it.
 
+## AWS runtime boundary
+
+Prepared infrastructure restricts public ingress to the HTTPS ALB. API tasks trust one proxy hop and accept port 3110 only from its security group. Worker endpoints and data services stay private. ECS execution roles inject secrets; application roles have no AWS API permissions. Only the migration task gets database administration credentials; runtime access excludes DDL and the migration ledger. ALB access logging remains disabled to avoid capturing webhook verification tokens. This is tested infrastructure code, not a deployed control. See [runtime preparation](AWS_RUNTIME.md).
+
 ## Review
 
 Update this document in any pull request that adds a trust boundary, tool, webhook or data store.

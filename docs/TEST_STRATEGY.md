@@ -39,6 +39,7 @@ Adding an exclusion needs a reason here and in `vitest.config.ts`, and review. B
 | `design/` | Exercised through `audit:tokens` |
 | `packages/db/scripts/seed.ts` | CI runs the seed twice to prove it's idempotent |
 | `packages/db/scripts/register-whatsapp.ts` | Thin CLI over the integration-tested registration function; invalid arguments and database failures produce a generic error |
+| `packages/db/scripts/prepare-runtime.ts` | Generic-error subprocess test and CI migration image smoke test against disposable Postgres |
 | `deploy/server/` | Legacy; removed at AWS cutover |
 
 ## Writing good tests
@@ -70,8 +71,8 @@ lookup-free synthesis. The wiring-only `infra/bin/app.ts` is exercised by
 `npm run infra:synth` in CI. A deliberately unrestricted database ingress rule
 must produce `AwsSolutions-EC23` in the security-gate test.
 
-Infrastructure synthesis tests have a 20-second per-test limit because they run
-CDK and CloudFormation policy validation over the complete three-stack assembly.
+Infrastructure synthesis tests have a 20-second per-test limit (30 seconds for the runtime assembly) because they run
+CDK and CloudFormation policy validation over the complete foundation assembly, plus the optional runtime stack.
 Assertions cover isolated subnet membership, security-group relationships, TLS,
 backups, encryption, generated credentials and retention policies. A planted
 infrastructure-to-runtime import also verified the dependency boundary fails.

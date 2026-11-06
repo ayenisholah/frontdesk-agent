@@ -4,8 +4,9 @@ import { createDependencies } from "./checks.js";
 import { loadConfig } from "./config.js";
 import { createShutdown } from "./lifecycle.js";
 import { createLogger } from "./log.js";
+import { resolveRuntimeEnvironment } from "@frontdesk/runtime";
 
-const config = loadConfig();
+const config = loadConfig(resolveRuntimeEnvironment(process.env));
 const log = createLogger(config.LOG_LEVEL, {
   service: "api",
   release: config.RELEASE_SHA.slice(0, 12),
@@ -16,6 +17,7 @@ const app = createApp({
   checks: deps.checks,
   log,
   release: config.RELEASE_SHA,
+  proxy: config.TRUST_PROXY,
   whatsapp: config.WHATSAPP_WEBHOOK_ENABLED
     ? {
         appSecret: config.WHATSAPP_APP_SECRET!,

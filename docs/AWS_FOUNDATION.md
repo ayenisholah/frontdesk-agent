@@ -3,7 +3,7 @@
 M4.1 prepares infrastructure locally; it does not deploy or activate providers.
 The CDK workspace currently implements configuration validation, protected stack
 scaffolding, retained API/worker image repositories, offline synthesis and security checks. The two-zone network and ECS cluster are implemented. Protected Postgres and Redis
-resources are implemented. Deployment and application service wiring remain planned.
+resources are implemented. Optional application service wiring and migration preparation are implemented; deployment remains planned. See [runtime preparation](AWS_RUNTIME.md).
 
 Run `npm run infra:test` and `npm run infra:synth`. The example configuration uses
 a fictional account and explicit availability zones, so no account lookup or
@@ -23,13 +23,11 @@ The network stack creates two public, two application and two isolated data
 subnets. One NAT gateway serves application egress; data route tables have no
 internet/default route. The default security group is restricted. API and worker
 security groups allow HTTPS egress plus Postgres/Redis connections; data services
-accept only those application security groups on 5432/6379. No public application
-listener exists yet.
+accept only those application security groups on 5432/6379. The optional runtime stack adds public HTTPS ingress to private API tasks.
 
 All VPC traffic produces flow records in a retained CloudWatch log group with
 30-day event retention. The platform stack has an ECS cluster with Container
-Insights enabled and immutable, scanned API/worker image repositories. There are
-no ECS services or tasks, ALB, DNS records or certificates. Outputs contain resource
+Insights enabled and immutable, scanned API/worker image repositories. The base configuration has no ECS services or ALB; optional runtime configuration adds them. DNS records and certificate issuance remain external prerequisites. Outputs contain resource
 identifiers, never credentials. Explicit zones also seed CDK's zone context to
 prevent indirect account lookups by constructs.
 
@@ -41,7 +39,7 @@ major matches local development; AWS selects a supported minor and automatic min
 updates are enabled. Verify the regional version before deployment. Paid extended
 support is disabled. RDS manages the `frontdesk_owner` administrator credential in
 Secrets Manager. That credential is for administration, not application runtime;
-a least-privileged application role and migration path are still required.
+the optional runtime configuration provides a separate application role and one-off migration path.
 
 Redis OSS 7.1 uses one `cache.t4g.small` node with cluster mode disabled,
 `noeviction`, required TLS, AUTH and seven-day snapshots. Its 32-character token is
@@ -79,7 +77,7 @@ rebuilds due work. A shared-zone or NAT outage can interrupt the pilot.
 
 This feature makes no account changes. The next feature must verify account and
 regional capacity/version availability, review current costs and bootstrap/diff,
-then implement runtime TLS trust, least-privileged database access, coordinated
-Redis credential rotation, ECS services, migrations, ALB, OIDC deployment,
+then complete coordinated
+Redis credential rotation, OIDC deployment,
 rollback and alarms. Do not remove the legacy server or enable provider traffic
 until cutover and real-phone acceptance succeed.
