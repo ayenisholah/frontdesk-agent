@@ -32,12 +32,15 @@ must never be committed.
 ## HTTP contract
 
 `GET /webhooks/whatsapp` accepts `hub.mode=subscribe`, the configured
-`hub.verify_token`, and a non-empty `hub.challenge`. It returns the challenge as
+`hub.verify_token`, and a decimal `hub.challenge` (1–32 digits). It returns the challenge as
 plain text, or 403 on failure.
 
 `POST /webhooks/whatsapp` requires `X-Hub-Signature-256: sha256=<hex>` computed
 with the app secret over the exact body bytes. Signature verification precedes
-JSON parsing. Bodies are limited to 1 MiB; compressed bodies are refused.
+JSON parsing. Both routes allow 120 requests per minute per IP per API process,
+returning 429 with `Retry-After` when exceeded. This local in-memory limit is not
+a fleet-wide quota; shared limiting and ALB proxy configuration belong to M4.
+Bodies are limited to 1 MiB; compressed bodies are refused.
 
 | Result | HTTP status |
 | --- | --- |
@@ -46,6 +49,7 @@ JSON parsing. Bodies are limited to 1 MiB; compressed bodies are refused.
 | Invalid JSON/schema or unsupported encoding | 400 |
 | Provider ID conflicts with an existing message | 409 |
 | Body exceeds limit | 413 |
+| Per-IP request limit exceeded | 429 |
 | Unregistered receiving number or database failure | 503 |
 | Intake disabled | 404 |
 

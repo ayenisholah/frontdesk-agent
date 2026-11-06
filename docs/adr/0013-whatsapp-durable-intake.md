@@ -10,7 +10,9 @@ stored. Customer content and secrets must not reach logs.
 
 ## Decision
 
-Verify the raw-body HMAC before parsing. Route through an explicitly provisioned
+Apply a per-IP request limit before body parsing and verify the raw-body HMAC
+before JSON parsing. Only decimal verification challenges are accepted and the
+returned value is escaped. Route through an explicitly provisioned
 number-to-business registry. For each message, atomically persist the message and
 a pending `InboundWork` record. Acknowledge only after commit. Serialize provider
 ID deduplication and customer conversation selection with transaction-scoped advisory
