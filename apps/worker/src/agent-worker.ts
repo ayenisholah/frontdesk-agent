@@ -7,6 +7,7 @@ type Options = Omit<ConversationOptions, "store"> & {
   db: Db;
   report: () => void;
   retentionDays?: number;
+  shutdownSignal?: AbortSignal;
 };
 export function createAgentWorker(options: Options) {
   const { db, clock, report } = options;
@@ -24,5 +25,6 @@ export function createAgentWorker(options: Options) {
         claim.messageId,
       ),
     report,
+    shutdownSignal: options.shutdownSignal,
   });
 }

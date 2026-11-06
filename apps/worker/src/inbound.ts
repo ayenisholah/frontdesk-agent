@@ -12,6 +12,7 @@ type Dependencies = {
   prepare(claim: Claimed): Promise<"run" | "finished">;
   execute(claim: Claimed, signal: AbortSignal): Promise<{ state: string }>;
   report(): void;
+  shutdownSignal?: AbortSignal;
 };
 
 export function createInboundProcessor(deps: Dependencies) {
@@ -32,7 +33,10 @@ export function createInboundProcessor(deps: Dependencies) {
     const deadline = setTimeout(() => controller.abort(), 300_000);
     try {
       if ((await deps.prepare(claim)) === "finished") return;
-      const result = await deps.execute(claim, controller.signal);
+      const signal = deps.shutdownSignal
+        ? AbortSignal.any([controller.signal, deps.shutdownSignal])
+        : controller.signal;
+      const result = await deps.execute(claim, signal);
       if (result.state === "silent") await inbox.complete(claim.lease, "skipped", "owner");
       if (result.state === "busy") throw new Error("Turn unavailable");
     } catch {

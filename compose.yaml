@@ -47,6 +47,22 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
 
+  worker:
+    profiles: [worker]
+    build: { context: ., target: worker-runtime, args: { VCS_REF: local } }
+    image: frontdesk-worker:local
+    environment:
+      DATABASE_URL: postgresql://frontdesk:frontdesk-local-only@postgres:5432/frontdesk
+      REDIS_URL: redis://:frontdesk-local-only@redis:6379
+      INBOUND_WORKER_ENABLED: "false"
+      OUTBOUND_WORKER_ENABLED: "false"
+      CONTENT_RETENTION_ENABLED: "false"
+    ports: ["127.0.0.1:3111:3111"]
+    stop_grace_period: 35s
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
 volumes:
   pgdata:
   redisdata:

@@ -34,6 +34,7 @@ Adding an exclusion needs a reason here and in `vitest.config.ts`, and review. B
 
 | Path | How it's checked instead |
 | --- | --- |
+| `apps/worker/bin/start.ts` | Wiring-only worker entrypoint; CI image smoke tests cover startup, readiness, configuration failure and shutdown |
 | `scripts/` | Build and audit scripts run in CI; CLI subprocess tests and deterministic evaluations exercise agent commands |
 | `design/` | Exercised through `audit:tokens` |
 | `packages/db/scripts/seed.ts` | CI runs the seed twice to prove it's idempotent |

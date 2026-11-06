@@ -10,5 +10,12 @@
     "zod": "^4.6.7",
     "@frontdesk/agent": "0.1.0",
     "@frontdesk/channels": "0.1.0"
+  },
+  "scripts": {
+    "build": "cd ../.. && node scripts/build-api.mjs worker",
+    "start": "node dist/start.js"
+  },
+  "exports": {
+    ".": "./src/index.ts"
   }
 }

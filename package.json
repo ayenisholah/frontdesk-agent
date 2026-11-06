@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "dev:api": "npm run dev -w @frontdesk/api",
-    "build": "npm run build -w @frontdesk/api",
+    "build": "npm run build -w @frontdesk/api && npm run build -w @frontdesk/worker",
     "db:generate": "npm run generate -w @frontdesk/db",
     "db:migrate": "npm run migrate -w @frontdesk/db",
     "db:deploy": "npm run deploy -w @frontdesk/db",
@@ -35,7 +35,9 @@
     "chat": "node --env-file-if-exists=.env --import tsx scripts/chat.ts",
     "eval": "node --env-file-if-exists=.env --import tsx scripts/eval.ts",
     "whatsapp:register": "node --env-file-if-exists=.env --import tsx packages/db/scripts/register-whatsapp.ts",
-    "whatsapp:delivery": "node --env-file-if-exists=.env --import tsx packages/db/scripts/delivery.ts"
+    "whatsapp:delivery": "node --env-file-if-exists=.env --import tsx packages/db/scripts/delivery.ts",
+    "dev:worker": "node --env-file-if-exists=.env --import tsx apps/worker/bin/start.ts",
+    "demo:whatsapp": "node --env-file-if-exists=.env --import tsx scripts/whatsapp-demo.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
@@ -57,6 +59,8 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.1",
     "vitest": "^4.1.12",
-    "yaml": "^2.9.1"
+    "yaml": "^2.9.1",
+    "@frontdesk/api": "0.1.0",
+    "@frontdesk/worker": "0.1.0"
   }
 }

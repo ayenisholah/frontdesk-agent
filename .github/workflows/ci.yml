@@ -99,3 +99,23 @@ jobs:
         run: |
           label=$(docker image inspect frontdesk-api:${{ github.sha }} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')
           test "$label" = "${{ github.sha }}"
+      - name: Build and smoke test worker
+        run: |
+          docker build --target worker-runtime --build-arg VCS_REF=${{ github.sha }} -t frontdesk-worker:${{ github.sha }} .
+          docker run -d --name worker-smoke -p 127.0.0.1:3111:3111 \
+            -e DATABASE_URL=postgresql://u:p@127.0.0.1:1/db -e REDIS_URL=redis://127.0.0.1:1 \
+            frontdesk-worker:${{ github.sha }}
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:3111/healthz; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:3111/healthz
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3111/readyz)" = "503"
+          curl -fsS http://127.0.0.1:3111/metrics
+          docker stop -t 35 worker-smoke
+          test "$(docker inspect worker-smoke --format '{{.State.ExitCode}}')" = "0"
+          if docker run --rm -e DATABASE_URL=postgresql://u:p@127.0.0.1:1/db \
+            -e REDIS_URL=redis://127.0.0.1:1 -e INBOUND_WORKER_ENABLED=true \
+            -e CONTENT_RETENTION_ENABLED=true frontdesk-worker:${{ github.sha }}; then
+            echo 'Worker incorrectly accepted missing model configuration'; exit 1
+          fi

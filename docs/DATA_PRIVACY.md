@@ -43,8 +43,10 @@ is made terminal, and both claim and send paths independently reject expired or
 redacted content even before cleanup runs. Abandoned sends remain uncertain and
 can still reconcile provider statuses using retained metadata.
 
-Daily scheduling is **planned** for the executable worker (M3). Until that worker
-is configured and verified, no real customer data goes into the system.
+The executable worker runs bounded cleanup at startup and every 24 hours when
+`CONTENT_RETENTION_ENABLED=true`. Inbound/outbound processing requires this flag.
+`CONTENT_RETENTION_DAYS` sets the same limit for cleanup, claims and sends. Live
+customer traffic remains deferred until provider access and acceptance are verified.
 
 ## Deletion
 

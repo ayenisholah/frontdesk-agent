@@ -15,6 +15,7 @@
     "apps/worker/test/**/*.ts",
     "packages/*/scripts/**/*.ts",
     "packages/*/*.config.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "apps/worker/bin/**/*.ts"
   ]
 }
