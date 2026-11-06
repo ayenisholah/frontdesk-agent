@@ -72,6 +72,31 @@ describe("WhatsApp webhook", () => {
     ])
       expect((await request(app).get("/webhooks/whatsapp").query(invalid)).status).toBe(403);
   });
+  it("rejects markup challenges", async () => {
+    const { app } = setup();
+    const query = {
+      "hub.mode": "subscribe",
+      "hub.verify_token": "fictional-token",
+      "hub.challenge": "<script>alert(1)</script>",
+    };
+    expect((await request(app).get("/webhooks/whatsapp").query(query)).status).toBe(403);
+  });
+  it("rate-limits intake before storage and resets after the window", async () => {
+    const { post, accept } = setup();
+    const responses = await Promise.all(Array.from({ length: 120 }, () => post()));
+    expect(responses.every((res) => res.status === 200)).toBe(true);
+    const limited = await post();
+    expect(limited.status).toBe(429);
+    expect(Number(limited.headers["retry-after"])).toBeGreaterThan(0);
+    expect(accept).toHaveBeenCalledTimes(120);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date(Date.now() + 61_000));
+      expect((await post()).status).toBe(200);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("persists authenticated messages and acknowledges duplicates", async () => {
     const { post, accept, log } = setup();
     expect((await post()).status).toBe(200);
