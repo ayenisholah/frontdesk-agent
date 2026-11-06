@@ -10,7 +10,7 @@
     },
     "apps/worker": {
       "entry": ["src/index.ts"],
-      "project": ["src/**"]
+      "project": ["src/**", "test/**"]
     },
     "packages/agent": {
       "project": ["src/**", "test/**"]
