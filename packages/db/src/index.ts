@@ -14,3 +14,4 @@ export type { Clock } from "./slots";
 export * from "./generated/enums";
 export { createToolStore } from "./agent-tools";
 export type { AgentScope } from "./agent-scope";
+export { createAgentStore } from "./agent-store";
