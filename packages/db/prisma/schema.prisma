@@ -83,6 +83,7 @@ model Business {
 
   whatsappRegistrations WhatsAppRegistration[]
   inboundWork InboundWork[]
+  outboundWork OutboundWork[]
   services      Service[]
   openingHours  OpeningHours[]
   customers     Customer[]
@@ -179,6 +180,7 @@ model Message {
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   inboundWork InboundWork?
+  outboundWork OutboundWork?
 
   /// Webhook dedupe (NFR-2): the same provider message is stored once.
   @@unique([channel, providerMessageId])
@@ -259,6 +261,7 @@ model AgentRun {
   conversationId   String      @db.Uuid
   /// The inbound Message that triggered this run.
   triggerMessageId String?     @db.Uuid
+  inboxSequence BigInt? @unique
   model            String
   promptVersion    String
   ratesVersion     String @default("unversioned")
@@ -341,6 +344,7 @@ model WhatsAppRegistration {
 /// Durable inbox; future dispatchers enqueue IDs only, never customer content.
 model InboundWork {
   sequence BigInt @id @default(autoincrement())
+  reply OutboundWork?
   businessId String @db.Uuid
   messageId String @unique @db.Uuid
   phoneNumberId String
@@ -358,4 +362,20 @@ model InboundWork {
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
   @@index([state, sequence])
   @@index([businessId, sequence])
+}
+
+/// A committed reply awaiting provider delivery. No network call occurs in its transaction.
+model OutboundWork {
+  id String @id @default(uuid()) @db.Uuid
+  businessId String @db.Uuid
+  messageId String @unique @db.Uuid
+  inboundSequence BigInt @unique
+  phoneNumberId String
+  allowOwner Boolean @default(false)
+  state String @default("pending")
+  createdAt DateTime @default(now()) @db.Timestamptz
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  inbound InboundWork @relation(fields: [inboundSequence], references: [sequence], onDelete: Cascade)
+  @@index([businessId, state, createdAt])
 }

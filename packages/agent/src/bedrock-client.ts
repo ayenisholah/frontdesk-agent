@@ -90,7 +90,7 @@ export function createBedrockClient(options: BedrockOptions): ModelClient {
     options.sender ??
     new BedrockRuntimeClient({ region, maxAttempts: MAX_ATTEMPTS, retryMode: "adaptive" });
   return {
-    async complete({ system, messages, tools, maxTokens }: ModelRequest) {
+    async complete({ system, messages, tools, maxTokens, signal }: ModelRequest) {
       const command = new ConverseCommand({
         modelId,
         system: [{ text: system }],
@@ -99,7 +99,8 @@ export function createBedrockClient(options: BedrockOptions): ModelClient {
         inferenceConfig: { maxTokens },
         toolConfig: tools.length ? { tools: tools.map(toConverseTool) } : undefined,
       });
-      const abortSignal = AbortSignal.timeout(timeoutMs);
+      const timeout = AbortSignal.timeout(timeoutMs);
+      const abortSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
       let output: ConverseCommandOutput;
       try {
         output = await sender.send(command, { abortSignal });

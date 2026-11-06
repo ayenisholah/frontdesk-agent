@@ -25,3 +25,4 @@ export { createInboxStore } from "./inbox";
 export type { InboxRef, InboxClaim } from "./inbox";
 export { LeaseLost } from "./inbox-lease";
 export type { InboxLease } from "./inbox-lease";
+export { prepareInboxTurn } from "./worker-turn";

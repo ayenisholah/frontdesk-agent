@@ -9,7 +9,7 @@ import { withSlotLock, type Clock } from "./slots";
 export function createAgentStore(db: Db, scope: AgentScope, clock: Clock): AgentStore {
   const withRun = <T>(runId: string, work: (tx: Tx, now: Date) => Promise<T>) =>
     withSlotLock(db, scope.businessId, clock, async (tx, now) => {
-      await scopedRun(tx, scope, runId);
+      await scopedRun(tx, scope, runId, now);
       return work(tx, now);
     });
   return {
