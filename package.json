@@ -10,7 +10,8 @@
   },
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "infra"
   ],
   "scripts": {
     "dev:api": "npm run dev -w @frontdesk/api",
@@ -25,10 +26,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck --workspaces --if-present",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "check:deps": "depcruise apps packages --config .dependency-cruiser.cjs",
+    "check:deps": "depcruise apps packages infra --config .dependency-cruiser.cjs",
     "check:dupes": "jscpd --config .jscpd.json",
     "check:unused": "knip",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run check:deps && npm run check:dupes && npm run check:unused && npm run test:coverage && npm run audit:tokens && npm run audit:units && npm run eval",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run check:deps && npm run check:dupes && npm run check:unused && npm run test:coverage && npm run audit:tokens && npm run audit:units && npm run eval && npm run infra:synth",
     "tokens": "tsx scripts/build-tokens.ts",
     "audit:tokens": "tsx scripts/build-tokens.ts --check && tsx scripts/audit-contrast.ts",
     "audit:units": "node scripts/audit-units.mjs",
@@ -37,7 +38,9 @@
     "whatsapp:register": "node --env-file-if-exists=.env --import tsx packages/db/scripts/register-whatsapp.ts",
     "whatsapp:delivery": "node --env-file-if-exists=.env --import tsx packages/db/scripts/delivery.ts",
     "dev:worker": "node --env-file-if-exists=.env --import tsx apps/worker/bin/start.ts",
-    "demo:whatsapp": "node --env-file-if-exists=.env --import tsx scripts/whatsapp-demo.ts"
+    "demo:whatsapp": "node --env-file-if-exists=.env --import tsx scripts/whatsapp-demo.ts",
+    "infra:test": "vitest run infra/test",
+    "infra:synth": "npm run synth -w @frontdesk/infra"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",

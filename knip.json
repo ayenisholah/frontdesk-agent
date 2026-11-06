@@ -25,6 +25,10 @@
       "entry": ["scripts/*.ts"],
       "project": ["src/**", "test/**", "scripts/**"],
       "ignoreDependencies": ["@prisma/client"]
+    },
+    "infra": {
+      "entry": ["bin/app.ts"],
+      "project": ["src/**", "test/**", "bin/**"]
     }
   }
 }

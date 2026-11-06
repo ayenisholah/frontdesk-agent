@@ -5,6 +5,7 @@
 FROM node:24-alpine AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
+COPY infra/package.json infra/
 COPY apps/api/package.json apps/api/
 COPY apps/worker/package.json apps/worker/
 COPY apps/dashboard/package.json apps/dashboard/
@@ -24,6 +25,7 @@ RUN npm run build
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY --from=build /src/package.json /src/package-lock.json ./
+COPY --from=build /src/infra/package.json infra/
 COPY --from=build /src/apps/api/package.json apps/api/
 COPY --from=build /src/apps/worker/package.json apps/worker/
 COPY --from=build /src/apps/dashboard/package.json apps/dashboard/

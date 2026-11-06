@@ -2,7 +2,7 @@
 
 **Related:** [SPEC](../SPEC.md) · [ADRs](adr/README.md) · [Engineering standards](ENGINEERING_STANDARDS.md) · [Threat model](THREAT_MODEL.md)
 
-This describes the target system. Milestones in the [roadmap](ROADMAP.md) deliver it in stages: today the API serves health checks and opt-in authenticated WhatsApp intake; the booking engine and a CLI agent with replay-safe tools and persisted traces exist. WhatsApp workers and AWS hosting remain planned.
+This describes the target system. Milestones in the [roadmap](ROADMAP.md) deliver it in stages: today the API serves health checks and opt-in authenticated WhatsApp intake; the booking engine and a CLI agent with replay-safe tools and persisted traces exist. Durable WhatsApp workers and a fictional end-to-end demo are implemented. AWS infrastructure preparation is in progress; hosting remains planned.
 
 ## System context
 
@@ -28,7 +28,7 @@ Owner ── browser, WhatsApp ────────────► │ Front
 ## Message flow
 
 1. A webhook reaches `api`, which verifies the signature, resolves the receiving number to a business and dedupes by provider message id.
-2. The message and pending Postgres inbox record commit atomically. Publishing inbox IDs to BullMQ `inbound` and one-at-a-time ordering per conversation remain planned.
+2. The message and pending Postgres inbox record commit atomically. The dispatcher publishes inbox IDs to BullMQ `inbound`; fenced leases enforce per-conversation claim ordering.
 3. The agent worker loads state and config, runs the model loop with tools, and persists a trace.
 4. Side-effecting tools pass policy checks first. Replies go to the `outbound` queue.
 5. The outbound worker applies rate limits and the WhatsApp 24-hour window, then sends through a channel adapter.

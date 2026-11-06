@@ -16,6 +16,7 @@
     "packages/*/scripts/**/*.ts",
     "packages/*/*.config.ts",
     "vitest.config.ts",
-    "apps/worker/bin/**/*.ts"
+    "apps/worker/bin/**/*.ts",
+    "infra/**/*.ts"
   ]
 }

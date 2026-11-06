@@ -60,6 +60,13 @@ jobs:
         run: npm run check:dupes
       - name: Unused code
         run: npm run check:unused
+      - name: Offline infrastructure synthesis and security checks
+        run: npm run infra:synth
+        env:
+          AWS_EC2_METADATA_DISABLED: "true"
+          AWS_ACCESS_KEY_ID: ""
+          AWS_SECRET_ACCESS_KEY: ""
+          AWS_SESSION_TOKEN: ""
       - run: npm run db:deploy
       - name: Tests with 100% coverage gate
         run: npm run test:coverage
