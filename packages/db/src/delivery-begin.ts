@@ -1,3 +1,4 @@
+import { retentionCutoff } from "@frontdesk/core";
 import type { SendMessage } from "@frontdesk/channels";
 import type { Tx } from "./client";
 import { deliveryFault, recipientHash, type DeliveryWork } from "./delivery-data";
@@ -10,13 +11,25 @@ export type DeliveryClaim =
       message: SendMessage;
       sender: { phoneNumberId: string; credentialEnv: string; version: string };
     };
-export async function beginDelivery(tx: Tx, work: DeliveryWork, now: Date): Promise<DeliveryClaim> {
+export async function beginDelivery(
+  tx: Tx,
+  work: DeliveryWork,
+  now: Date,
+  retentionDays: number,
+): Promise<DeliveryClaim> {
   if (work.state === "sending") {
     if (work.leaseUntil && work.leaseUntil <= now)
       await deliveryFault(tx, work, now, { state: "uncertain", reason: "uncertain_delivery" });
     return { state: "skip" };
   }
   if (work.state !== "pending" || work.nextAttemptAt > now) return { state: "skip" };
+  if (work.message.redactedAt || work.message.createdAt <= retentionCutoff(now, retentionDays)) {
+    await tx.outboundWork.update({
+      where: { id: work.id, businessId: work.businessId },
+      data: { state: "suppressed", reason: "content_expired", finishedAt: now },
+    });
+    return { state: "skip" };
+  }
   const route = await deliveryRoute(tx, work);
   if (!route) {
     await deliveryFault(tx, work, now, { state: "dead", reason: "sender_configuration" });

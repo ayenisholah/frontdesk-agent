@@ -1,3 +1,4 @@
+import { DEFAULT_RETENTION_DAYS } from "@frontdesk/core";
 import type { SendResult } from "@frontdesk/channels";
 import type { Db } from "./client";
 import { withSlotLock, type Clock } from "./slots";
@@ -6,7 +7,12 @@ import { beginDelivery, type DeliveryClaim } from "./delivery-begin";
 import { resolveDelivery } from "./delivery-result";
 
 export type DeliveryRef = { businessId: string; id: string };
-export function createDeliveryStore(db: Db, businessId: string, clock: Clock) {
+export function createDeliveryStore(
+  db: Db,
+  businessId: string,
+  clock: Clock,
+  retentionDays = DEFAULT_RETENTION_DAYS,
+) {
   return {
     listDead: () =>
       db.outboundWork.findMany({
@@ -15,22 +21,7 @@ export function createDeliveryStore(db: Db, businessId: string, clock: Clock) {
         orderBy: { createdAt: "desc" },
         take: 100,
       }),
-    async route(id: string) {
-      const work = await db.outboundWork.findFirst({
-        where: { id, businessId, state: { in: ["pending", "sending"] } },
-        include: { message: { include: { conversation: true } } },
-      });
-      return work
-        ? {
-            state: work.state,
-            senderId: work.phoneNumberId,
-            recipientId:
-              work.recipientRole === "owner"
-                ? `owner-${businessId}`
-                : work.message.conversation.customerId,
-          }
-        : null;
-    },
+    route: (id: string) => deliveryRoute(db, businessId, id),
     defer: (id: string, delayMs: number) =>
       withSlotLock(db, businessId, clock, async (tx, now) => {
         await tx.outboundWork.updateMany({
@@ -55,7 +46,7 @@ export function createDeliveryStore(db: Db, businessId: string, clock: Clock) {
                   inboundSequence: { lt: work.inboundSequence },
                 },
               });
-        return earlier ? { state: "skip" } : beginDelivery(tx, work, now);
+        return earlier ? { state: "skip" } : beginDelivery(tx, work, now, retentionDays);
       }),
     resolve: (attemptId: string, result: SendResult) =>
       withSlotLock(db, businessId, clock, (tx, now) =>
@@ -77,4 +68,21 @@ async function listDue(db: Db, businessId: string, clock: Clock): Promise<Delive
               AND p."inboundSequence" < w."inboundSequence"))
         ORDER BY w."createdAt", w.id LIMIT 100`;
   return rows.map(({ id }) => ({ businessId, id }));
+}
+
+async function deliveryRoute(db: Db, businessId: string, id: string) {
+  const work = await db.outboundWork.findFirst({
+    where: { id, businessId, state: { in: ["pending", "sending"] } },
+    include: { message: { include: { conversation: true } } },
+  });
+  return work
+    ? {
+        state: work.state,
+        senderId: work.phoneNumberId,
+        recipientId:
+          work.recipientRole === "owner"
+            ? `owner-${businessId}`
+            : work.message.conversation.customerId,
+      }
+    : null;
 }

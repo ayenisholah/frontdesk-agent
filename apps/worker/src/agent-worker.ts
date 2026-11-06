@@ -3,11 +3,15 @@ import { createAgentStore, createInboxStore, prepareInboxTurn, type Db } from "@
 import { createInboundProcessor } from "./inbound";
 import { cancelModel } from "./cancel-model";
 
-type Options = Omit<ConversationOptions, "store"> & { db: Db; report: () => void };
+type Options = Omit<ConversationOptions, "store"> & {
+  db: Db;
+  report: () => void;
+  retentionDays?: number;
+};
 export function createAgentWorker(options: Options) {
   const { db, clock, report } = options;
   return createInboundProcessor({
-    inbox: (businessId) => createInboxStore(db, businessId, clock),
+    inbox: (businessId) => createInboxStore(db, businessId, clock, options.retentionDays),
     prepare: (claim) => prepareInboxTurn(db, { ...claim.scope, lease: claim.lease }, clock),
     execute: (claim, signal) =>
       runConversationTurn(
