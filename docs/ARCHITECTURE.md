@@ -2,7 +2,7 @@
 
 **Related:** [SPEC](../SPEC.md) · [ADRs](adr/README.md) · [Engineering standards](ENGINEERING_STANDARDS.md) · [Threat model](THREAT_MODEL.md)
 
-This describes the target system. Milestones in the [roadmap](ROADMAP.md) deliver it in stages: today the API serves health checks, and the data model, config schema and design system exist.
+This describes the target system. Milestones in the [roadmap](ROADMAP.md) deliver it in stages: today the API serves health checks; the booking engine and a CLI agent with replay-safe tools and persisted traces exist. WhatsApp workers and AWS hosting remain planned.
 
 ## System context
 
@@ -70,3 +70,13 @@ Decisions are in [ADR 0002](adr/0002-aws-ecs-fargate.md), [0003](adr/0003-cdk-in
 | Channel send fails | Retry; a permanent failure goes to the dead-letter queue and alerts the owner (FR-CH-2) |
 | Duplicate webhook | No second effect (NFR-2) |
 | Postgres or Redis down | `/readyz` returns 503 and the service is taken out of rotation; `/healthz` stays 200 |
+
+## Current agent execution
+
+The CLI injects the database's `AgentStore` into `runConversationTurn`. A short
+business-scoped transaction claims the inbound message; no transaction is held
+across model calls. The small model classifies the request, then the main model
+selects policy-checked tools. Model prose never supplies customer-facing facts:
+replies render tool results or fixed clarification text. Every reported model
+usage and completed tool step is persisted before proceeding. See
+[ADR 0012](adr/0012-agent-execution.md) and [local commands](AGENT_DEVELOPMENT.md).

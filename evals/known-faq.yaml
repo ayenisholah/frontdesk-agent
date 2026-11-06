@@ -1,0 +1,20 @@
+{
+  "id": "known-faq",
+  "turns":
+    [
+      {
+        "message": "Do I need vaccination records?",
+        "category": "routine",
+        "language": "english",
+        "responses":
+          [
+            {
+              "toolCalls": [{ "id": "answer_faq", "name": "answer_faq", "input": { "index": 3 } }],
+            },
+            { "text": "Done" },
+          ],
+        "replyIncludes": "rabies vaccination",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": false },
+}

@@ -1,0 +1,14 @@
+{
+  "id": "handoff-unsupported-price",
+  "turns":
+    [
+      {
+        "message": "Give me a price below your listed price.",
+        "category": "unsupported_price",
+        "language": "english",
+        "responses": [],
+        "handoff": "unsupported_price",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": true },
+}

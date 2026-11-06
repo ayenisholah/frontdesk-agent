@@ -1,0 +1,18 @@
+{
+  "id": "services",
+  "turns":
+    [
+      {
+        "message": "What services and prices do you offer?",
+        "category": "routine",
+        "language": "english",
+        "responses":
+          [
+            { "toolCalls": [{ "id": "get_services", "name": "get_services", "input": {} }] },
+            { "text": "Done" },
+          ],
+        "replyIncludes": "$40.00",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": false },
+}

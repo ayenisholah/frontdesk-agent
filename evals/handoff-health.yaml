@@ -1,0 +1,14 @@
+{
+  "id": "handoff-health",
+  "turns":
+    [
+      {
+        "message": "My pet has an infected wound; can you treat it?",
+        "category": "health",
+        "language": "english",
+        "responses": [],
+        "handoff": "health",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": true },
+}

@@ -1,0 +1,14 @@
+{
+  "id": "handoff-customer-request",
+  "turns":
+    [
+      {
+        "message": "Please let me speak to the owner.",
+        "category": "customer_request",
+        "language": "english",
+        "responses": [],
+        "handoff": "customer_request",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": true },
+}

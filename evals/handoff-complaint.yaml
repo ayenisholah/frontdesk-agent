@@ -1,0 +1,14 @@
+{
+  "id": "handoff-complaint",
+  "turns":
+    [
+      {
+        "message": "I am unhappy with your service and want to complain.",
+        "category": "complaint",
+        "language": "english",
+        "responses": [],
+        "handoff": "complaint",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": true },
+}

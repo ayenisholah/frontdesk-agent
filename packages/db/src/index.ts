@@ -15,3 +15,5 @@ export * from "./generated/enums";
 export { createToolStore } from "./agent-tools";
 export type { AgentScope } from "./agent-scope";
 export { createAgentStore } from "./agent-store";
+export { openSandbox, appendSandboxMessage } from "./sandbox";
+export { inspectSandbox } from "./sandbox-inspect";

@@ -16,16 +16,16 @@ Provider webhooks into `api` · customer text into the model · model output int
 | --- | --- | --- | --- |
 | T-1 | Forged WhatsApp or Stripe webhook (Spoofing) | Signature verification before any processing (FR-CH-1, FR-PY-2) | Planned, M3 and M5 |
 | T-2 | Replayed webhook causes a second effect (Tampering) | Dedupe by provider id; `Message` is unique on channel and provider id (NFR-2) | Partial: constraint exists, handlers planned |
-| T-3 | Prompt injection changes price or policy (Tampering) | Prices from config; tool policies ignore customer claims (GR-1, GR-7) | Partial: tool policies and configured replies implemented; orchestration/evals planned |
-| T-4 | Model invents a slot or confirms unpaid booking (Tampering) | Engine revalidates slots; only the payments worker confirms (GR-2, GR-3) | Planned, M2 and M5 |
+| T-3 | Prompt injection changes price or policy (Tampering) | Prices from config; tool policies ignore customer claims (GR-1, GR-7) | Implemented for CLI: policy-checked tools and fixed fact rendering; live injection eval pending |
+| T-4 | Model invents a slot or confirms unpaid booking (Tampering) | Engine revalidates slots; only the payments worker confirms (GR-2, GR-3) | Engine revalidation implemented; payment confirmation path planned M5 |
 | T-5 | One business reads another's data (Information disclosure) | Business-scoped queries and session checks (FR-DB-1) | Planned, M7 |
 | T-6 | Message bodies or phone numbers leak into logs (Information disclosure) | Log rules and a scrub test (NFR-5) | Partial: rule documented, test planned |
 | T-7 | Config or system prompt leaks through chat (Information disclosure) | Injection evals (EV-3) | Planned, M8 |
-| T-8 | Message floods run up model cost (Denial of service) | Token budget, step cap, rate limits (NFR-4, GR-5) | Planned, M2 and M3 |
+| T-8 | Message floods run up model cost (Denial of service) | Token budget, step cap, rate limits (NFR-4, GR-5) | Step/token limits implemented; channel rate limits planned M3 |
 | T-9 | Secret committed to the repository (Information disclosure) | gitleaks in CI and hooks; GitHub push protection | Implemented |
 | T-10 | Malicious dependency or action (Tampering) | SHA-pinned actions, Dependabot, CodeQL, `npm audit` | Implemented |
 | T-11 | Stolen CI credentials reach production (Elevation of privilege) | OIDC with a role scoped to this repo and environment ([ADR 0008](adr/0008-github-actions-oidc-deploy.md)) | Planned, M4 |
-| T-12 | Owner takeover ignored; agent replies anyway (Tampering) | State checked before any model call (GR-6) | Planned, M6 |
+| T-12 | Owner takeover ignored; agent replies anyway (Tampering) | State checked before any model call (GR-6) | CLI ownership checks implemented; channel takeover planned M6 |
 | T-13 | Racing conversations double-book a slot (Tampering) | Per-business slot lock and a lane exclusion constraint ([ADR 0010](adr/0010-booking-concurrency.md)) | Implemented |
 
 ## Known risks to design for

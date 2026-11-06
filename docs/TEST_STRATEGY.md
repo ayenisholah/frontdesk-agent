@@ -45,8 +45,13 @@ Adding an exclusion needs a reason here and in `vitest.config.ts`, and review. B
 
 ## Evals
 
-Evals check agent behaviour, which coverage can't measure. They arrive in M2 and become a CI gate in M8 (EV-1 to EV-6). Failures seen in production traces become new scenarios.
+Evals check agent behaviour, which coverage can't measure. Sixteen M2 scenarios now run with scripted model responses against Postgres in `npm run check` and CI. `npm run eval -- --live` uses Bedrock for the same customer messages and database assertions. Scripted passes verify workflow behavior, not model quality. The live regression baseline and 40+ scenario gate remain M8 (EV-1 to EV-6). Failures seen in production traces become new scenarios.
 
 ## Proving a gate works
 
 A new gate must be shown to fail on a planted violation before it's trusted.
+
+The deterministic gate was verified with `npm run eval -- --scenario services
+--plant-invalid-expectation`: it exits 1 and reports an `activeHolds` mismatch.
+Eval fixtures are isolated under generated `sandbox-eval-` business slugs and
+retained for trace inspection. Run against a migrated local or CI database.
