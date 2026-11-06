@@ -9,12 +9,13 @@ export interface AppOptions {
   log: Logger;
   release: string;
   whatsapp?: WhatsAppOptions;
+  proxy?: "loopback" | "alb";
 }
 
-export function createApp({ checks, log, release, whatsapp }: AppOptions) {
+export function createApp({ checks, log, release, whatsapp, proxy }: AppOptions) {
   const app = express();
   app.disable("x-powered-by");
-  app.set("trust proxy", "loopback");
+  app.set("trust proxy", proxy === "alb" ? 1 : "loopback");
 
   app.use((_req: Request, res: Response, next: NextFunction) => {
     res.set({

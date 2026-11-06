@@ -9,7 +9,8 @@
     "ioredis": "^6.0.0",
     "zod": "^4.6.7",
     "@frontdesk/agent": "0.1.0",
-    "@frontdesk/channels": "0.1.0"
+    "@frontdesk/channels": "0.1.0",
+    "@frontdesk/runtime": "0.1.0"
   },
   "scripts": {
     "build": "cd ../.. && node scripts/build-api.mjs worker",

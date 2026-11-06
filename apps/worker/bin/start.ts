@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { resolveRuntimeEnvironment } from "@frontdesk/runtime";
 import { createBedrockClient, parseAgentConfig } from "@frontdesk/agent";
 import { createWhatsAppSender } from "@frontdesk/channels";
 import {
@@ -21,7 +22,7 @@ import { createSweep } from "../src/sweep";
 import { createWorkerHealth } from "../src/health";
 
 function main() {
-  const settings = parseWorkerConfig(process.env);
+  const settings = parseWorkerConfig(resolveRuntimeEnvironment(process.env));
   const config = settings.inbound ? parseAgentConfig(process.env) : undefined;
   const db = createDb(settings.database);
   const controller = new AbortController();

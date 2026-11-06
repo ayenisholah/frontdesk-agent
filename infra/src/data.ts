@@ -25,4 +25,5 @@ export function createDataServices(
     RedisCredentialSecretArn: credential.secretArn,
   };
   for (const [name, value] of Object.entries(outputs)) new CfnOutput(stack, name, { value });
+  return { database, cache, credential, key };
 }

@@ -8,6 +8,7 @@ const paths = [
   "apps/worker",
   "packages/channels",
   "packages/core",
+  "packages/runtime",
   "packages/db",
   "packages/agent",
 ];

@@ -31,3 +31,4 @@ export { createWhatsAppStatusIntake } from "./delivery-status";
 export { configureWhatsAppDelivery } from "./delivery-config";
 export { createDeliveryOperator } from "./delivery-operator";
 export { redactBusinessContent } from "./retention";
+export { provisionRuntimeAccess } from "./runtime-access";

@@ -1,9 +1,11 @@
-import { App, CfnOutput, Tags, RemovalPolicy, aws_ecr as ecr, aws_ecs as ecs } from "aws-cdk-lib";
+import { App, CfnOutput, Tags } from "aws-cdk-lib";
 import type { InfraConfig } from "./config";
 import { applySecurityChecks } from "./security";
 import { createStack } from "./stack";
 import { createNetwork } from "./network";
 import { createDataServices } from "./data";
+import { createPlatform } from "./platform";
+import { createServices } from "./services";
 export function createFoundation(config: InfraConfig) {
   const app = new App({
     context: {
@@ -17,25 +19,23 @@ export function createFoundation(config: InfraConfig) {
   const network = createStack(app, "network", config);
   const networking = createNetwork(network, config);
   const data = createStack(app, "data", config);
-  createDataServices(data, networking, config);
-  const cluster = new ecs.Cluster(platform, "Cluster", {
-    vpc: networking.vpc,
-    containerInsightsV2: ecs.ContainerInsights.ENABLED,
-  });
-  new CfnOutput(platform, "ClusterArn", { value: cluster.clusterArn });
-  for (const service of ["api", "worker"]) {
-    const repository = new ecr.Repository(platform, `${service}Repository`, {
-      imageTagMutability: ecr.TagMutability.IMMUTABLE,
-      imageScanOnPush: true,
-      removalPolicy: RemovalPolicy.RETAIN,
-      emptyOnDelete: false,
+  const dataServices = createDataServices(data, networking, config);
+  const resources = createPlatform(platform, networking.vpc);
+  const runtime = config.runtime ? createStack(app, "runtime", config) : undefined;
+  if (runtime && config.runtime)
+    createServices({
+      stack: runtime,
+      dataStack: data,
+      config,
+      settings: config.runtime,
+      network: networking,
+      data: dataServices,
+      platform: resources,
     });
-    new CfnOutput(platform, `${service}RepositoryUri`, { value: repository.repositoryUri });
-  }
   Tags.of(app).add("Project", "frontdesk");
   Tags.of(app).add("Stage", config.stage);
   Tags.of(app).add("ManagedBy", "cdk");
   new CfnOutput(platform, "Region", { value: config.region });
   applySecurityChecks(app);
-  return { app, platform, network, networking, data };
+  return { app, platform, network, networking, data, runtime };
 }

@@ -126,3 +126,24 @@ jobs:
             -e CONTENT_RETENTION_ENABLED=true frontdesk-worker:${{ github.sha }}; then
             echo 'Worker incorrectly accepted missing model configuration'; exit 1
           fi
+      - name: Build and exercise migration image
+        run: |
+          docker build --target migration-runtime --build-arg VCS_REF=${{ github.sha }} -t frontdesk-migrate:${{ github.sha }} .
+          docker run -d --name migration-db -p 127.0.0.1:25432:5432 \
+            -e POSTGRES_USER=frontdesk_owner -e POSTGRES_PASSWORD=fictional-ci-admin \
+            -e POSTGRES_DB=frontdesk postgres:16-alpine
+          for i in $(seq 1 30); do
+            if docker exec migration-db pg_isready -h 127.0.0.1 -U frontdesk_owner -d frontdesk; then break; fi
+            sleep 1
+          done
+          for i in 1 2; do
+            docker run --rm --network host \
+              -e DATABASE_URL=postgresql://frontdesk_owner:fictional-ci-admin@127.0.0.1:25432/frontdesk \
+              -e RUNTIME_DATABASE_PASSWORD=fictional-ci-runtime-password frontdesk-migrate:${{ github.sha }}
+          done
+          docker exec -e PGPASSWORD=fictional-ci-runtime-password migration-db \
+            psql -h 127.0.0.1 -U frontdesk_runtime -d frontdesk -v ON_ERROR_STOP=1 -c 'SELECT count(*) FROM "Business"'
+          if docker exec -e PGPASSWORD=fictional-ci-runtime-password migration-db \
+            psql -h 127.0.0.1 -U frontdesk_runtime -d frontdesk -v ON_ERROR_STOP=1 -c 'CREATE TABLE forbidden(id int)'; then
+            echo 'Runtime incorrectly received schema privileges'; exit 1
+          fi

@@ -11,6 +11,7 @@ const schema = z
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     PORT: z.coerce.number().int().min(1).max(65535).default(3110),
     HOST: z.string().default("0.0.0.0"),
+    TRUST_PROXY: z.enum(["loopback", "alb"]).default("loopback"),
     LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
     DATABASE_URL: z.string().url(),
     REDIS_URL: z.string().url(),

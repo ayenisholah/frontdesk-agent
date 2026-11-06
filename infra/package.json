@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "synth": "cdk synth --strict --no-lookups --quiet"
+    "synth": "cdk synth --strict --no-lookups --quiet && INFRA_CONFIG=config/runtime.example.json cdk synth --strict --no-lookups --quiet --output cdk.out/runtime"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.275.0",

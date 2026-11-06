@@ -10,6 +10,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/worker/package.json apps/worker/
 COPY apps/dashboard/package.json apps/dashboard/
 COPY packages/core/package.json packages/core/
+COPY packages/runtime/package.json packages/runtime/
 COPY packages/agent/package.json packages/agent/
 COPY packages/channels/package.json packages/channels/
 COPY packages/db/package.json packages/db/
@@ -30,10 +31,21 @@ COPY --from=build /src/apps/api/package.json apps/api/
 COPY --from=build /src/apps/worker/package.json apps/worker/
 COPY --from=build /src/apps/dashboard/package.json apps/dashboard/
 COPY --from=build /src/packages/core/package.json packages/core/
+COPY --from=build /src/packages/runtime/package.json packages/runtime/
 COPY --from=build /src/packages/agent/package.json packages/agent/
 COPY --from=build /src/packages/channels/package.json packages/channels/
 COPY --from=build /src/packages/db/package.json packages/db/
 RUN npm ci --omit=dev --ignore-scripts -w @frontdesk/api -w @frontdesk/worker && npm cache clean --force
+
+FROM build AS migration-runtime
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.title="frontdesk-migrate" \
+      org.opencontainers.image.revision="${VCS_REF}"
+ENV NODE_ENV=production NODE_EXTRA_CA_CERTS=/app/certs/rds-eu-west-1.crt
+COPY certs/rds-eu-west-1.crt /app/certs/rds-eu-west-1.crt
+WORKDIR /src/packages/db
+USER node
+CMD ["node", "--import", "tsx", "scripts/prepare-runtime.ts"]
 
 FROM node:24-alpine AS worker-runtime
 ARG VCS_REF=unknown
@@ -41,6 +53,8 @@ LABEL org.opencontainers.image.title="frontdesk-worker" \
       org.opencontainers.image.revision="${VCS_REF}"
 ENV NODE_ENV=production WORKER_PORT=3111 RELEASE_SHA=${VCS_REF}
 WORKDIR /app
+ENV NODE_EXTRA_CA_CERTS=/app/certs/rds-eu-west-1.crt
+COPY certs/rds-eu-west-1.crt ./certs/rds-eu-west-1.crt
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /src/apps/worker/dist ./dist
 COPY --from=build /src/apps/worker/package.json ./package.json
@@ -58,6 +72,8 @@ LABEL org.opencontainers.image.title="frontdesk-api" \
       org.opencontainers.image.revision="${VCS_REF}"
 ENV NODE_ENV=production PORT=3110 RELEASE_SHA=${VCS_REF}
 WORKDIR /app
+ENV NODE_EXTRA_CA_CERTS=/app/certs/rds-eu-west-1.crt
+COPY certs/rds-eu-west-1.crt ./certs/rds-eu-west-1.crt
 COPY --from=deps --chown=root:root /app/node_modules ./node_modules
 COPY --from=build --chown=root:root /src/apps/api/dist ./dist
 COPY --from=build --chown=root:root /src/apps/api/package.json ./package.json

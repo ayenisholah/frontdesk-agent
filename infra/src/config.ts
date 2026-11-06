@@ -1,5 +1,15 @@
 import { z } from "zod";
 const schema = z.strictObject({
+  runtime: z
+    .strictObject({
+      hostname: z.string().regex(/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/),
+      releaseSha: z.string().regex(/^[a-f0-9]{40}$/),
+      certificateArn: z.string().regex(/^arn:aws:acm:eu-west-1:\d{12}:certificate\/[a-f0-9-]{36}$/),
+      desiredCount: z.union([z.literal(0), z.literal(1)]).default(0),
+      databasePrepared: z.boolean().default(false),
+    })
+    .refine((v) => v.desiredCount === 0 || v.databasePrepared)
+    .optional(),
   stage: z.literal("pilot").default("pilot"),
   account: z.string().regex(/^\d{12}$/),
   region: z.literal("eu-west-1").default("eu-west-1"),
@@ -14,6 +24,11 @@ const schema = z.strictObject({
 export type InfraConfig = z.infer<typeof schema>;
 export function parseInfraConfig(input: unknown): InfraConfig {
   const result = schema.safeParse(input);
-  if (!result.success) throw new Error("Invalid infrastructure configuration");
+  if (
+    !result.success ||
+    (result.data.runtime &&
+      !result.data.runtime.certificateArn.includes(`:${result.data.account}:certificate/`))
+  )
+    throw new Error("Invalid infrastructure configuration");
   return result.data;
 }
