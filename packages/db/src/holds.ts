@@ -1,5 +1,5 @@
 // Holds: a short claim on a slot while the customer decides or pays.
-import type { Db } from "./client";
+import type { Db, Tx } from "./client";
 import { BookingStatus, HoldStatus } from "./generated/enums";
 import { canClaim, withSlotLock, type Clock } from "./slots";
 
@@ -24,45 +24,54 @@ export type HoldResult =
  * re-validates the time, so an invented slot is refused. A refusal keeps the existing hold.
  */
 export function placeHold(db: Db, request: HoldRequest): Promise<HoldResult> {
-  const { businessId, conversationId, serviceKey, startsAt, clock } = request;
-  return withSlotLock(db, businessId, clock, async (tx, now) => {
-    const conversation = await tx.conversation.findFirst({
-      where: { id: conversationId, businessId },
-    });
-    if (!conversation) return { ok: false, reason: "conversation_not_found" };
-    const service = await tx.service.findFirst({
-      where: { businessId, key: serviceKey, active: true },
-    });
-    if (!service) return { ok: false, reason: "service_not_found" };
+  return withSlotLock(db, request.businessId, request.clock, (tx, now) =>
+    placeHoldInTransaction(tx, request, now),
+  );
+}
 
-    const endsAt = new Date(startsAt.getTime() + service.durationMinutes * MINUTE_MS);
-    const claim = {
+/** Used by replay-safe agent mutations inside the same slot transaction. */
+export async function placeHoldInTransaction(
+  tx: Tx,
+  request: Omit<HoldRequest, "clock">,
+  now: Date,
+): Promise<HoldResult> {
+  const { businessId, conversationId, serviceKey, startsAt } = request;
+  const conversation = await tx.conversation.findFirst({
+    where: { id: conversationId, businessId },
+  });
+  if (!conversation) return { ok: false, reason: "conversation_not_found" };
+  const service = await tx.service.findFirst({
+    where: { businessId, key: serviceKey, active: true },
+  });
+  if (!service) return { ok: false, reason: "service_not_found" };
+
+  const endsAt = new Date(startsAt.getTime() + service.durationMinutes * MINUTE_MS);
+  const claim = {
+    businessId,
+    service,
+    startsAt,
+    endsAt,
+    now,
+    exceptConversationId: conversationId,
+  };
+  if (!(await canClaim(tx, claim))) return { ok: false, reason: "slot_unavailable" };
+
+  await tx.hold.updateMany({
+    where: { conversationId, status: HoldStatus.active },
+    data: { status: HoldStatus.released },
+  });
+  const hold = await tx.hold.create({
+    data: {
       businessId,
-      service,
+      conversationId,
+      serviceId: service.id,
       startsAt,
       endsAt,
-      now,
-      exceptConversationId: conversationId,
-    };
-    if (!(await canClaim(tx, claim))) return { ok: false, reason: "slot_unavailable" };
-
-    await tx.hold.updateMany({
-      where: { conversationId, status: HoldStatus.active },
-      data: { status: HoldStatus.released },
-    });
-    const hold = await tx.hold.create({
-      data: {
-        businessId,
-        conversationId,
-        serviceId: service.id,
-        startsAt,
-        endsAt,
-        expiresAt: new Date(now.getTime() + HOLD_MINUTES * MINUTE_MS),
-      },
-      select: { id: true, startsAt: true, endsAt: true, expiresAt: true },
-    });
-    return { ok: true, hold };
+      expiresAt: new Date(now.getTime() + HOLD_MINUTES * MINUTE_MS),
+    },
+    select: { id: true, startsAt: true, endsAt: true, expiresAt: true },
   });
+  return { ok: true, hold };
 }
 
 /**

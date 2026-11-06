@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1163.0",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@frontdesk/core": "0.1.0"
   }
 }
