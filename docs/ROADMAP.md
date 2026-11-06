@@ -12,7 +12,7 @@ Work is organised into milestones. Each one closes named requirement IDs and end
 | M1 | Availability and bookings | Done |
 | M2 | Agent core | In progress |
 | M3 | WhatsApp | In progress |
-| M4 | AWS platform | Planned |
+| M4 | AWS platform | In progress |
 | M5 | Deposits | Planned |
 | M6 | Reminders and handoff | Planned |
 | M7 | Owner dashboard | Planned |
@@ -49,6 +49,8 @@ Implemented: signature-verified webhook intake, tenant registration, message ded
 - **Done when:** integration tests for signature, dedupe, ordering and retry pass, and a local tunnel lets a real phone chat with the agent.
 
 ## M4: AWS platform
+
+The CDK workspace, retained image repositories, configuration validation and offline synthesis/security gates are implemented. Network, compute, data stacks and deployment remain planned. See [AWS foundation](AWS_FOUNDATION.md).
 
 - **Closes:** NFR-11
 - **Build:** CDK stacks for the network, ECS Fargate services behind an ALB, RDS Postgres, ElastiCache, Secrets Manager and Bedrock access. A `deploy.yml` GitHub Actions workflow using OIDC. Move `trust proxy` in `apps/api/src/app.ts` from `loopback` to the ALB. Alarms, SLOs, runbooks and a cost report. Cut over from the legacy server, then remove `deploy/` and its GitHub secrets.

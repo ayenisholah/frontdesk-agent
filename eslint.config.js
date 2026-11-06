@@ -6,6 +6,7 @@ export default tseslint.config(
   {
     ignores: [
       "**/dist/**",
+      "**/cdk.out/**",
       "**/node_modules/**",
       "coverage/**",
       "apps/dashboard/styles/tokens.css",
@@ -39,7 +40,7 @@ export default tseslint.config(
   },
   {
     // Size limits keep functions modular. Tests are exempt: a describe block is not a unit of design.
-    files: ["apps/*/src/**/*.ts", "packages/*/src/**/*.ts"],
+    files: ["apps/*/src/**/*.ts", "packages/*/src/**/*.ts", "infra/src/**/*.ts"],
     ignores: ["packages/db/src/generated/**"],
     rules: {
       complexity: ["error", 10],

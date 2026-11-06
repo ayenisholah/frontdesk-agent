@@ -1,6 +1,18 @@
 /** Module boundaries from docs/ENGINEERING_STANDARDS.md, enforced in CI. */
 module.exports = {
   forbidden: [
+    {
+      name: "runtime-does-not-import-infra",
+      severity: "error",
+      from: { path: "^(apps|packages)/" },
+      to: { path: "^infra/" },
+    },
+    {
+      name: "infra-does-not-import-runtime",
+      severity: "error",
+      from: { path: "^infra/" },
+      to: { path: "^(apps|packages)/" },
+    },
     { name: "no-circular", severity: "error", from: {}, to: { circular: true } },
     {
       name: "core-has-no-io",

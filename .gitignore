@@ -10,3 +10,5 @@ release.tar.gz
 .DS_Store
 packages/db/src/generated/
 artifacts/
+
+cdk.out/

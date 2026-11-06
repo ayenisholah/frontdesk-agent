@@ -1,0 +1,7 @@
+{
+  "account": "111111111111",
+  "region": "eu-west-1",
+  "stage": "pilot",
+  "cidr": "10.42.0.0/16",
+  "availabilityZones": ["eu-west-1a", "eu-west-1b"]
+}

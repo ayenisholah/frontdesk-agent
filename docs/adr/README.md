@@ -17,3 +17,4 @@ Each record captures one decision, its context and its consequences. Records are
 | [0012](0012-agent-execution.md) | Durable agent turns and controlled replies | Accepted |
 | [0013](0013-whatsapp-durable-intake.md) | Verified WhatsApp intake and durable inbox | Accepted |
 | [0014](0014-worker-leases-and-delivery.md) | Worker leases, recovery and durable delivery | Accepted |
+| [0015](0015-aws-pilot-foundation.md) | Offline AWS pilot foundation | Accepted |

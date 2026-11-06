@@ -4,7 +4,7 @@
   "minTokens": 60,
   "reporters": ["console"],
   "pattern": "**/*.{ts,mjs}",
-  "path": ["apps", "packages", "scripts", "design"],
+  "path": ["apps", "packages", "scripts", "design", "infra"],
   "ignore": ["**/generated/**", "**/dist/**", "**/node_modules/**", "**/migrations/**"],
   "gitignore": true
 }

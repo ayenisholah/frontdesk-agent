@@ -5,3 +5,5 @@ apps/dashboard/styles/tokens.css
 docs
 packages/db/src/generated
 packages/db/prisma/migrations
+
+cdk.out/

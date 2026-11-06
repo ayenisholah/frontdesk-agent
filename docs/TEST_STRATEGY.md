@@ -61,3 +61,11 @@ The deterministic gate was verified with `npm run eval -- --scenario services
 --plant-invalid-expectation`: it exits 1 and reports an `activeHolds` mismatch.
 Eval fixtures are isolated under generated `sandbox-eval-` business slugs and
 retained for trace inspection. Run against a migrated local or CI database.
+
+## Infrastructure
+
+`infra/src` follows the same 100% per-file coverage gate. CDK assertions verify
+synthesized resource properties, while `cdk-nag` checks security during strict,
+lookup-free synthesis. The wiring-only `infra/bin/app.ts` is exercised by
+`npm run infra:synth` in CI. A deliberately unrestricted database ingress rule
+must produce `AwsSolutions-EC23` in the security-gate test.
