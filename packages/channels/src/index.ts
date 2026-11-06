@@ -1,2 +1,2 @@
-// WhatsApp Cloud API and Twilio adapters behind one interface.
-export {};
+export { parseWhatsAppWebhook, verifyWhatsAppSignature } from "./whatsapp";
+export type { InboundMessage, IntakeResult, AcceptInbound } from "./whatsapp";

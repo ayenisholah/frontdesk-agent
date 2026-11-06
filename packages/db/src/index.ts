@@ -17,3 +17,6 @@ export type { AgentScope } from "./agent-scope";
 export { createAgentStore } from "./agent-store";
 export { openSandbox, appendSandboxMessage } from "./sandbox";
 export { inspectSandbox } from "./sandbox-inspect";
+
+export { createWhatsAppIntake } from "./whatsapp-intake";
+export { registerWhatsAppNumber } from "./whatsapp-registration";

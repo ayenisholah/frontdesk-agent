@@ -16,7 +16,7 @@
       "project": ["src/**", "test/**"]
     },
     "packages/channels": {
-      "project": ["src/**"]
+      "project": ["src/**", "test/**"]
     },
     "packages/core": {
       "project": ["src/**", "test/**"]

@@ -66,6 +66,8 @@ npm test
 
 After generating the Prisma client and applying migrations, `npm run eval` runs the fictional deterministic scenarios. `npm run chat` runs the Bedrock CLI, and `npm run eval -- --live` runs model-quality checks once AWS access and rates are configured. See [Agent development](docs/AGENT_DEVELOPMENT.md).
 
+WhatsApp webhook intake is available for fictional local testing; workers and outbound delivery remain planned. See [WhatsApp development](docs/WHATSAPP_DEVELOPMENT.md).
+
 ## Deployment
 
 GitHub Actions runs every check on each pull request. Automatic deployment is paused while the project moves to AWS (ECS Fargate, RDS and ElastiCache, defined in CDK): see [ADR 0002](docs/adr/0002-aws-ecs-fargate.md) and milestone M4 in the [roadmap](docs/ROADMAP.md).

@@ -33,15 +33,19 @@
     "audit:tokens": "tsx scripts/build-tokens.ts --check && tsx scripts/audit-contrast.ts",
     "audit:units": "node scripts/audit-units.mjs",
     "chat": "node --env-file-if-exists=.env --import tsx scripts/chat.ts",
-    "eval": "node --env-file-if-exists=.env --import tsx scripts/eval.ts"
+    "eval": "node --env-file-if-exists=.env --import tsx scripts/eval.ts",
+    "whatsapp:register": "node --env-file-if-exists=.env --import tsx packages/db/scripts/register-whatsapp.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
     "@eslint/js": "^10.0.1",
+    "@frontdesk/agent": "0.1.0",
+    "@frontdesk/db": "0.1.0",
     "@types/node": "^24.19.2",
     "@vitest/coverage-v8": "^4.1.12",
     "dependency-cruiser": "^17.4.3",
+    "esbuild": "^0.28.2",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
     "jscpd": "^5.4.2",
@@ -52,8 +56,6 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.1",
     "vitest": "^4.1.12",
-    "yaml": "^2.9.1",
-    "@frontdesk/agent": "0.1.0",
-    "@frontdesk/db": "0.1.0"
+    "yaml": "^2.9.1"
   }
 }

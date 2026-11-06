@@ -30,9 +30,10 @@ Adding an exclusion needs a reason here and in `vitest.config.ts`, and review. B
 
 | Path | How it's checked instead |
 | --- | --- |
-| `scripts/` | Run by `audit:tokens` and `audit:units` in CI |
+| `scripts/` | Build and audit scripts run in CI; CLI subprocess tests and deterministic evaluations exercise agent commands |
 | `design/` | Exercised through `audit:tokens` |
 | `packages/db/scripts/seed.ts` | CI runs the seed twice to prove it's idempotent |
+| `packages/db/scripts/register-whatsapp.ts` | Thin CLI over the integration-tested registration function; invalid arguments and database failures produce a generic error |
 | `deploy/server/` | Legacy; removed at AWS cutover |
 
 ## Writing good tests

@@ -15,12 +15,21 @@ COPY packages/db/package.json packages/db/
 RUN npm ci --ignore-scripts
 COPY tsconfig.base.json ./
 COPY apps/api apps/api
+COPY packages packages
+COPY scripts/build-api.mjs scripts/build-api.mjs
+RUN npm run db:generate
 RUN npm run build -w @frontdesk/api
 
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY --from=build /src/package.json /src/package-lock.json ./
 COPY --from=build /src/apps/api/package.json apps/api/
+COPY --from=build /src/apps/worker/package.json apps/worker/
+COPY --from=build /src/apps/dashboard/package.json apps/dashboard/
+COPY --from=build /src/packages/core/package.json packages/core/
+COPY --from=build /src/packages/agent/package.json packages/agent/
+COPY --from=build /src/packages/channels/package.json packages/channels/
+COPY --from=build /src/packages/db/package.json packages/db/
 RUN npm ci --omit=dev --ignore-scripts -w @frontdesk/api && npm cache clean --force
 
 FROM node:24-alpine AS runtime

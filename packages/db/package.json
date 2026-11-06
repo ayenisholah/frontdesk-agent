@@ -15,7 +15,9 @@
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "pg": "8.23.1",
-    "@frontdesk/agent": "0.1.0"
+    "@frontdesk/agent": "0.1.0",
+    "@frontdesk/channels": "0.1.0",
+    "zod": "^4.6.7"
   },
   "scripts": {
     "generate": "prisma generate",
