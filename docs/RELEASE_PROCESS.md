@@ -13,7 +13,7 @@
 
 Feature branch → pull request → green checks → rebase merge. See [Contributing](../CONTRIBUTING.md).
 
-Today nothing deploys automatically. From M4, a merge to `main` runs `deploy.yml` ([ADR 0008](adr/0008-github-actions-oidc-deploy.md)).
+Today nothing deploys automatically. The prepared `deploy.yml` workflow is manual-first and disabled until its AWS and GitHub prerequisites are configured. See [deployment automation](AWS_DEPLOYMENT.md) and [ADR 0017](adr/0017-manual-aws-releases.md). Automatic deployment after successful main CI remains planned.
 
 ## Versioning and changelog
 
@@ -28,6 +28,8 @@ Use expand and contract, so old and new code can run during a deploy:
 1. **Expand:** add new columns or tables, nullable or with defaults.
 2. **Migrate:** deploy code that writes both forms, then backfill.
 3. **Contract:** remove the old form in a later release.
+
+The prepared AWS pipeline runs the one-off migration image before changing application image parameters. Only a zero migration exit code permits promotion. Runtime grants are refreshed after each migration.
 
 A destructive change never ships in the same release as the code that stops using the old form.
 

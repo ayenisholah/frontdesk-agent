@@ -12,9 +12,11 @@ import {
 } from "aws-cdk-lib";
 import type { RuntimeContext } from "./runtime-context";
 import { createRuntimeCredential } from "./runtime-secrets";
+import { createReleaseParameters } from "./release-parameters";
 import { createTask } from "./tasks";
 export function createServices(ctx: RuntimeContext) {
-  const { stack, settings, data, platform } = ctx;
+  const { stack, data, platform } = ctx;
+  const release = createReleaseParameters(ctx);
   const credential = createRuntimeCredential(ctx);
   const admin = secrets.Secret.fromSecretAttributes(stack, "DatabaseAdministrator", {
     secretCompleteArn: data.database.attrMasterUserSecretSecretArn,
@@ -22,45 +24,68 @@ export function createServices(ctx: RuntimeContext) {
   });
   const api = createTask(ctx, {
     name: "api",
+    releaseSha: release.app,
     repository: platform.api,
     credential,
     runtimeCredential: credential,
   });
   const worker = createTask(ctx, {
     name: "worker",
+    releaseSha: release.app,
     repository: platform.worker,
     credential,
     runtimeCredential: credential,
   });
-  const repository = new ecr.Repository(platform.cluster.stack, "migrationRepository", {
-    imageTagMutability: ecr.TagMutability.IMMUTABLE,
-    imageScanOnPush: true,
-    removalPolicy: RemovalPolicy.RETAIN,
-  });
+  const repository = migrationRepository(ctx);
   const migration = createTask(ctx, {
     name: "migrate",
+    releaseSha: release.migration,
     repository,
     credential: admin,
     runtimeCredential: credential,
   });
-  const apiService = service(ctx, "ApiService", api.task, ctx.network.api);
-  service(ctx, "WorkerService", worker.task, ctx.network.worker);
-  addIngress(ctx, apiService);
+  const apiService = service(ctx, "ApiService", {
+    taskDefinition: api.task,
+    group: ctx.network.api,
+    desiredCount: release.desiredCount,
+  });
+  const workerService = service(ctx, "WorkerService", {
+    taskDefinition: worker.task,
+    group: ctx.network.worker,
+    desiredCount: release.desiredCount,
+  });
+  const targetGroup = addIngress(ctx, apiService);
   new CfnOutput(stack, "MigrationTaskDefinitionArn", { value: migration.task.taskDefinitionArn });
   new CfnOutput(stack, "MigrationRepositoryUri", { value: repository.repositoryUri });
   new CfnOutput(stack, "RuntimeCredentialSecretArn", { value: credential.secretArn });
-  new CfnOutput(stack, "ReleaseSha", { value: settings.releaseSha });
+  new CfnOutput(stack, "ReleaseSha", { value: release.app });
+  const outputs = {
+    MigrationRelease: release.migration,
+    ClusterArn: platform.cluster.clusterArn,
+    ApiRepositoryUri: platform.api.repositoryUri,
+    WorkerRepositoryUri: platform.worker.repositoryUri,
+    ApplicationSubnetIds: ctx.network.vpc.privateSubnets.map((s) => s.subnetId).join(","),
+    MigrationSecurityGroupId: ctx.network.worker.securityGroupId,
+    ApiTaskDefinitionArn: api.task.taskDefinitionArn,
+    WorkerTaskDefinitionArn: worker.task.taskDefinitionArn,
+    TargetGroupArn: targetGroup.targetGroupArn,
+  };
+  for (const [id, value] of Object.entries(outputs)) new CfnOutput(stack, id, { value });
+  return { api, worker, migration, repository, apiService, workerService };
 }
 function service(
   ctx: RuntimeContext,
   id: string,
-  taskDefinition: ecs.FargateTaskDefinition,
-  group: ec2.SecurityGroup,
+  {
+    taskDefinition,
+    group,
+    desiredCount,
+  }: { taskDefinition: ecs.FargateTaskDefinition; group: ec2.SecurityGroup; desiredCount: number },
 ) {
   const result = new ecs.FargateService(ctx.stack, id, {
     cluster: ctx.platform.cluster,
     taskDefinition,
-    desiredCount: ctx.settings.desiredCount,
+    desiredCount,
     assignPublicIp: false,
     vpcSubnets: { subnets: ctx.network.vpc.privateSubnets },
     securityGroups: [
@@ -98,7 +123,7 @@ function addIngress(ctx: RuntimeContext, api: ecs.FargateService) {
     dropInvalidHeaderFields: true,
     vpcSubnets: { subnets: network.vpc.publicSubnets },
   });
-  loadBalancer
+  const targetGroup = loadBalancer
     .addListener("Https", {
       port: 443,
       open: false,
@@ -121,4 +146,13 @@ function addIngress(ctx: RuntimeContext, api: ecs.FargateService) {
   });
   new CfnOutput(stack, "LoadBalancerDnsName", { value: loadBalancer.loadBalancerDnsName });
   new CfnOutput(stack, "ApiEndpoint", { value: `https://${settings.hostname}` });
+  return targetGroup;
+}
+
+function migrationRepository({ platform }: RuntimeContext) {
+  return new ecr.Repository(platform.cluster.stack, "migrationRepository", {
+    imageTagMutability: ecr.TagMutability.IMMUTABLE,
+    imageScanOnPush: true,
+    removalPolicy: RemovalPolicy.RETAIN,
+  });
 }

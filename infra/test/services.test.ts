@@ -15,10 +15,16 @@ it("prepares private, disabled services with TLS ingress and separated migration
   });
   const { runtime, app } = createFoundation(config);
   const template = Template.fromStack(runtime!);
+  template.hasParameter("AppReleaseSha", {
+    Default: "a".repeat(40),
+    AllowedPattern: "^[a-f0-9]{40}$",
+  });
+  template.hasParameter("MigrationReleaseSha", { Default: "a".repeat(40) });
+  expect(template.toJSON().Rules).toHaveProperty("PreparedDatabaseRequired");
   template.resourceCountIs("AWS::ECS::Service", 2);
   template.resourceCountIs("AWS::ECS::TaskDefinition", 3);
   for (const service of Object.values(template.findResources("AWS::ECS::Service"))) {
-    expect(service.Properties.DesiredCount).toBe(0);
+    expect(service.Properties.DesiredCount).toEqual({ Ref: "ServiceDesiredCount" });
     expect(service.Properties.NetworkConfiguration.AwsvpcConfiguration.AssignPublicIp).toBe(
       "DISABLED",
     );

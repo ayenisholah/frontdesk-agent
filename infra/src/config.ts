@@ -1,5 +1,14 @@
 import { z } from "zod";
 const schema = z.strictObject({
+  deployment: z
+    .strictObject({
+      enabled: z.literal(true),
+      providerArn: z
+        .string()
+        .regex(/^arn:aws:iam::\d{12}:oidc-provider\/token\.actions\.githubusercontent\.com$/)
+        .optional(),
+    })
+    .optional(),
   runtime: z
     .strictObject({
       hostname: z.string().regex(/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/),
@@ -26,6 +35,9 @@ export function parseInfraConfig(input: unknown): InfraConfig {
   const result = schema.safeParse(input);
   if (
     !result.success ||
+    (result.data.deployment && !result.data.runtime) ||
+    (result.data.deployment?.providerArn &&
+      !result.data.deployment.providerArn.includes(`::${result.data.account}:`)) ||
     (result.data.runtime &&
       !result.data.runtime.certificateArn.includes(`:${result.data.account}:certificate/`))
   )

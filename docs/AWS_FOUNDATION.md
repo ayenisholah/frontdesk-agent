@@ -12,8 +12,7 @@ paths resolve from `infra/`. Configuration rejects unknown fields, non-EU region
 invalid accounts, duplicate zones and unsupported CIDRs. The pilot supports
 `eu-west-1` and a private `10.x.0.0/16` VPC.
 
-Synthesis runs cdk-nag with strict checking. No deployment workflow or credentials
-are configured. Synthesized artifacts stay in ignored `cdk.out/` directories.
+Synthesis runs cdk-nag with strict checking. A disabled manual deployment workflow and optional access stack are implemented; no live credentials or cloud roles are configured. See [deployment automation](AWS_DEPLOYMENT.md). Synthesized artifacts stay in ignored `cdk.out/` directories.
 A real deployment requires separate account/zone verification, cost review,
 bootstrap, diff review and deployment work. Do not deploy the fictional example.
 
@@ -78,6 +77,6 @@ rebuilds due work. A shared-zone or NAT outage can interrupt the pilot.
 This feature makes no account changes. The next feature must verify account and
 regional capacity/version availability, review current costs and bootstrap/diff,
 then complete coordinated
-Redis credential rotation, OIDC deployment,
+Redis credential rotation and activation of the prepared OIDC deployment,
 rollback and alarms. Do not remove the legacy server or enable provider traffic
 until cutover and real-phone acceptance succeed.

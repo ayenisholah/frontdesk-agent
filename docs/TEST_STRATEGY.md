@@ -76,3 +76,5 @@ CDK and CloudFormation policy validation over the complete foundation assembly, 
 Assertions cover isolated subnet membership, security-group relationships, TLS,
 backups, encryption, generated credentials and retention policies. A planted
 infrastructure-to-runtime import also verified the dependency boundary fails.
+
+Deployment modules are included in the infrastructure coverage gate. Fake SDK adapters exercise publication retries, migration failures/timeouts, stack transitions, ECS/ALB health, rollback and recovery; a real local HTTP server verifies readiness parsing. The two thin deployment CLIs have subprocess failure checks. Workflow tests reject planted untrusted triggers, missing enable gates and unprotected environments; IAM tests reject planted wildcard role passing. Strict synthesis also covers the optional deployment-access stack.

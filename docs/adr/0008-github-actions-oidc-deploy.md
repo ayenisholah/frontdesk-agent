@@ -1,6 +1,6 @@
 # 0008: GitHub Actions deploys to AWS through OIDC
 
-**Status:** Accepted
+**Status:** Accepted; manual-first rollout clarified by [ADR 0017](0017-manual-aws-releases.md).
 
 ## Context
 
