@@ -18,10 +18,11 @@ import type {
   ToolResult,
   ToolSpec,
 } from "./model-client";
+import { ModelFailure } from "./model-failure";
 
 const REQUEST_TIMEOUT_MS = 30_000;
 // Adaptive mode retries throttling and server errors only, with client-side rate limiting.
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 3;
 
 type ConverseSender = {
   send(
@@ -98,9 +99,17 @@ export function createBedrockClient(options: BedrockOptions): ModelClient {
         inferenceConfig: { maxTokens },
         toolConfig: tools.length ? { tools: tools.map(toConverseTool) } : undefined,
       });
-      return fromConverse(
-        await sender.send(command, { abortSignal: AbortSignal.timeout(timeoutMs) }),
-      );
+      const abortSignal = AbortSignal.timeout(timeoutMs);
+      let output: ConverseCommandOutput;
+      try {
+        output = await sender.send(command, { abortSignal });
+      } catch {
+        throw new ModelFailure(abortSignal.aborted ? "timeout" : "unavailable");
+      }
+      if (output.stopReason && !["end_turn", "tool_use"].includes(output.stopReason)) {
+        throw new ModelFailure("invalid_response");
+      }
+      return fromConverse(output);
     },
   };
 }

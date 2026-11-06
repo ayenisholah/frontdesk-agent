@@ -18,3 +18,13 @@ The agent sends customer messages to a model, so where that happens is a data de
 - The application's AWS region should be in the EU too, which ADR 0002 left open.
 - Bedrock invocation logging must stay off, or be locked down, because it would store customer text.
 - Evals need AWS credentials, so they run locally until CI gets its OIDC role.
+
+## Runtime configuration
+
+The application validates an EU source region and `eu.` model IDs. `BEDROCK_RATES`
+contains a version and a model-keyed table of input/output microdollars per token;
+both selected models require rates. Invalid configuration fails without echoing
+values. The adapter owns retries (three total SDK attempts within a 30-second
+request deadline). It exposes only typed, sanitized model failures, including
+truncated or filtered responses. Conversation orchestration and live evaluation
+remain planned until M2's remaining features land.
