@@ -13,6 +13,10 @@ Decision record: [ADR 0006](adr/0006-testing-policy.md).
 
 Database tests need `DATABASE_URL`. They create and drop their own database, so they never touch development data. **Without `DATABASE_URL` they're skipped, and the coverage gate then fails on `packages/db`.** That is deliberate. Other packages must reach 100% through their own tests, not through a database test that happens to call them.
 
+Queue integration tests additionally require `REDIS_URL` and use unique queue prefixes.
+Without Redis, queue tests skip and the worker coverage gate fails. CI provides Redis
+as well as Postgres.
+
 ## Coverage policy
 
 `npm run test:coverage` requires 100% lines, branches, functions and statements, per file, for `apps/*/src` and `packages/*/src`.

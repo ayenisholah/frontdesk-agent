@@ -1,7 +1,9 @@
 # WhatsApp intake development
 
 M3 currently implements authenticated webhook intake and a durable Postgres inbox.
-It does not dispatch BullMQ jobs, invoke the agent, or send replies. Keep it disabled
+Queue adapters and database lease primitives are available and integration-tested,
+but the executable worker is not yet wired. The API does not invoke the agent or
+send replies. Keep it disabled
 for real traffic until workers, outbound policy checks and retention are implemented.
 Bedrock authorization and live M2 acceptance are deferred.
 
@@ -76,3 +78,22 @@ phone numbers, signatures or verification query parameters.
 Run `npm run check` with Postgres. Unit and integration tests use fictional signed
 payloads and verify concurrent dedupe, tenant isolation, rollback, and batch replay.
 Container smoke tests exercise the enabled route without contacting Meta or Bedrock.
+
+## Queue foundation
+
+The worker library publishes up to 100 eligible inbox IDs per business with stable
+`inbound-<sequence>` job IDs. Pending work stays in Postgres, so lost Redis jobs can
+be rebuilt. Only the oldest unfinished message in each conversation is eligible.
+Queues use separate producer and consumer connections: producers fail promptly,
+while consumers reconnect. Job payloads are strict identifier-only objects.
+
+Inbox claims have a 90-second lease and an increasing ownership token. Renewal,
+completion and pre-start retries verify the live token under a database lock.
+Pre-start failures back off and become terminal after five claims. Reclaimed work
+is marked as recovered so the upcoming agent worker can hand off instead of replaying
+a partially executed model turn. Agent-store fencing and automatic renewal remain
+part of that next integration step.
+
+Queue integration tests require `REDIS_URL` as well as `DATABASE_URL`; they use unique
+Redis prefixes and isolated databases. CI supplies both services. The local Redis
+configuration uses `noeviction`. Run the complete gate with both URLs exported.

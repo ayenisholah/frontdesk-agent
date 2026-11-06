@@ -20,3 +20,8 @@ export { inspectSandbox } from "./sandbox-inspect";
 
 export { createWhatsAppIntake } from "./whatsapp-intake";
 export { registerWhatsAppNumber } from "./whatsapp-registration";
+
+export { createInboxStore } from "./inbox";
+export type { InboxRef, InboxClaim } from "./inbox";
+export { LeaseLost } from "./inbox-lease";
+export type { InboxLease } from "./inbox-lease";

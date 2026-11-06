@@ -346,6 +346,12 @@ model InboundWork {
   phoneNumberId String
   kind String
   state String @default("pending")
+  attempts Int @default(0)
+  leaseToken Int @default(0)
+  leaseUntil DateTime? @db.Timestamptz
+  nextAttemptAt DateTime @default(now()) @db.Timestamptz
+  finishedAt DateTime? @db.Timestamptz
+  reason String?
   providerTimestamp DateTime @db.Timestamptz
   receivedAt DateTime @db.Timestamptz
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
