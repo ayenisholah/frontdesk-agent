@@ -1,0 +1,17 @@
+{
+  "account": "111111111111",
+  "region": "eu-west-1",
+  "stage": "pilot",
+  "cidr": "10.42.0.0/16",
+  "availabilityZones": ["eu-west-1a", "eu-west-1b"],
+  "runtime": {
+    "hostname": "frontdesk.example.com",
+    "certificateArn": "arn:aws:acm:eu-west-1:111111111111:certificate/11111111-1111-1111-1111-111111111111",
+    "releaseSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "desiredCount": 0,
+    "databasePrepared": false
+  },
+  "deployment": {
+    "enabled": true
+  }
+}

@@ -9,7 +9,7 @@ open until cloud readiness, rollback and live acceptance are demonstrated.
 
 Run `npm run check` with Postgres and Redis available. `npm run infra:synth`
 synthesizes both the foundation and runtime examples without credentials or
-lookups. The runtime assembly is under `infra/cdk.out/runtime`. Both examples
+lookups. The runtime assembly is under `infra/cdk.out/runtime`. The additional deployment-access example is synthesized under `infra/cdk.out/deployment`. All examples
 contain fictional account/certificate/release values and must never be deployed.
 
 CI builds API, worker and migration images. The migration smoke test applies
@@ -18,6 +18,8 @@ and verifies that role cannot create tables. Integration tests also deny access
 to the migration ledger and reject elevated existing roles.
 
 ## Runtime contract
+
+The runtime stack now exposes independent application/migration release parameters and a CloudFormation database-prepared rule. Configuration supplies their defaults; see [deployment automation](AWS_DEPLOYMENT.md).
 
 The optional `runtime` configuration requires a full 40-character release SHA,
 an ACM certificate ARN in the configured account and region, and the public
@@ -89,9 +91,7 @@ filesystem; it is not a long-running service.
    require migration success before changing service images. Runtime grants
    must be refreshed after every migration.
 
-Deployment automation using GitHub OIDC, operational alarms, cost reporting,
-coordinated Redis rotation and live rollback/acceptance drills remain planned.
-No credentials or cloud write permissions are added to CI by this change.
+Manual GitHub OIDC deployment automation is now prepared but disabled; see [deployment automation](AWS_DEPLOYMENT.md). Operational alarms, cost reporting, coordinated Redis rotation and live rollback/acceptance drills remain planned. Ordinary CI has no AWS credentials or cloud write permissions.
 
 ## Failure and rotation procedures
 

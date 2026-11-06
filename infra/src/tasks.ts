@@ -12,12 +12,13 @@ import {
 import type { RuntimeContext } from "./runtime-context";
 type Options = {
   name: "api" | "worker" | "migrate";
+  releaseSha: string;
   repository: ecr.IRepository;
   credential: secrets.ISecret;
   runtimeCredential: secrets.ISecret;
 };
 export function createTask(ctx: RuntimeContext, options: Options) {
-  const { stack, config, settings } = ctx;
+  const { stack, config } = ctx;
   const { name, repository, credential } = options;
   const principal = new iam.ServicePrincipal("ecs-tasks.amazonaws.com", {
     conditions: {
@@ -41,12 +42,12 @@ export function createTask(ctx: RuntimeContext, options: Options) {
   const databaseSecret = importCredential(ctx, name + "Database", credential);
   const port = name === "api" ? 3110 : 3111;
   const container = task.addContainer(name, {
-    image: ecs.ContainerImage.fromEcrRepository(repository, settings.releaseSha),
+    image: ecs.ContainerImage.fromEcrRepository(repository, options.releaseSha),
     user: "node",
     readonlyRootFilesystem: name !== "migrate",
     stopTimeout: Duration.seconds(60),
     logging: ecs.LogDrivers.awsLogs({ streamPrefix: name, logGroup: group }),
-    environment: environment(ctx, name),
+    environment: environment(ctx, name, options.releaseSha),
     ...containerSettings(ctx, options, databaseSecret, port),
   });
   if (name !== "migrate") container.addPortMappings({ containerPort: port });
@@ -62,7 +63,7 @@ export function createTask(ctx: RuntimeContext, options: Options) {
   });
   return { task, container };
 }
-function environment({ config, data, settings }: RuntimeContext, name: Options["name"]) {
+function environment({ config, data }: RuntimeContext, name: Options["name"], releaseSha: string) {
   return {
     CLOUD_RUNTIME: "true",
     NODE_ENV: "production",
@@ -71,7 +72,7 @@ function environment({ config, data, settings }: RuntimeContext, name: Options["
     DATABASE_HOST: data.database.attrEndpointAddress,
     DATABASE_NAME: "frontdesk",
     REDIS_HOST: data.cache.attrPrimaryEndPointAddress,
-    RELEASE_SHA: settings.releaseSha,
+    RELEASE_SHA: releaseSha,
     QUEUE_PREFIX: `frontdesk-${config.stage}`,
     TRUST_PROXY: "alb",
     PORT: "3110",

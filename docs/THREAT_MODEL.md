@@ -24,7 +24,7 @@ Provider webhooks into `api` · customer text into the model · model output int
 | T-8 | Message floods run up model cost (Denial of service) | Token budget, step cap, rate limits (NFR-4, GR-5) | Step/token limits implemented; channel rate limits planned M3 |
 | T-9 | Secret committed to the repository (Information disclosure) | gitleaks in CI and hooks; GitHub push protection | Implemented |
 | T-10 | Malicious dependency or action (Tampering) | SHA-pinned actions, Dependabot, CodeQL, `npm audit` | Implemented |
-| T-11 | Stolen CI credentials reach production (Elevation of privilege) | OIDC with a role scoped to this repo and environment ([ADR 0008](adr/0008-github-actions-oidc-deploy.md)) | Planned, M4 |
+| T-11 | Stolen CI credentials reach production (Elevation of privilege) | OIDC with a role scoped to this repo and environment ([ADR 0008](adr/0008-github-actions-oidc-deploy.md)) | Prepared in M4.3; cloud roles and environment protections not yet activated |
 | T-12 | Owner takeover ignored; agent replies anyway (Tampering) | State checked before any model call (GR-6) | CLI ownership checks implemented; channel takeover planned M6 |
 | T-13 | Racing conversations double-book a slot (Tampering) | Per-business slot lock and a lane exclusion constraint ([ADR 0010](adr/0010-booking-concurrency.md)) | Implemented |
 
@@ -37,6 +37,10 @@ Provider webhooks into `api` · customer text into the model · model output int
 ## AWS runtime boundary
 
 Prepared infrastructure restricts public ingress to the HTTPS ALB. API tasks trust one proxy hop and accept port 3110 only from its security group. Worker endpoints and data services stay private. ECS execution roles inject secrets; application roles have no AWS API permissions. Only the migration task gets database administration credentials; runtime access excludes DDL and the migration ledger. ALB access logging remains disabled to avoid capturing webhook verification tokens. This is tested infrastructure code, not a deployed control. See [runtime preparation](AWS_RUNTIME.md).
+
+## Deployment trust boundary
+
+The prepared workflow requires a verified main-branch commit, production approval protections and an explicit enable flag before OIDC access. Its immutable subject is scoped to this repository and production environment. It cannot directly read secrets or provision infrastructure. It can execute privileged database migration code, so compromise of this role or the protected workflow can affect application data. Keep workflow changes under branch protection and preserve the approval gate. CloudFormation remains the owner of service state, and release evidence excludes secret values and raw provider errors. These controls are code-tested; live activation and rollback acceptance remain pending.
 
 ## Review
 

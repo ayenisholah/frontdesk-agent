@@ -27,7 +27,7 @@
       "ignoreDependencies": ["@prisma/client"]
     },
     "infra": {
-      "entry": ["bin/app.ts"],
+      "entry": ["bin/*.ts"],
       "project": ["src/**", "test/**", "bin/**"]
     },
     "packages/runtime": {
