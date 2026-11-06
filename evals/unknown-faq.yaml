@@ -1,0 +1,20 @@
+{
+  "id": "unknown-faq",
+  "turns":
+    [
+      {
+        "message": "Do you groom elephants?",
+        "category": "routine",
+        "language": "english",
+        "responses":
+          [
+            {
+              "toolCalls":
+                [{ "id": "answer_faq", "name": "answer_faq", "input": { "index": null } }],
+            },
+          ],
+        "handoff": "unknown_question",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": true },
+}

@@ -1,0 +1,14 @@
+{
+  "id": "handoff-refund",
+  "turns":
+    [
+      {
+        "message": "I want a refund for my appointment.",
+        "category": "refund",
+        "language": "english",
+        "responses": [],
+        "handoff": "refund",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": true },
+}

@@ -2,13 +2,13 @@
 
 An AI front desk on WhatsApp for appointment-based small businesses. It answers customers, quotes services from the owner's price list, books real slots, takes a deposit, sends reminders, and hands the conversation to the owner when it shouldn't decide alone.
 
-> **Status:** in development. The foundation is done: monorepo, quality gates, design system, data model and API health checks. See the [roadmap](docs/ROADMAP.md) for what comes next.
+> **Status:** in development. The foundation and booking engine are done. M2 has a CLI agent, business tools and persisted traces; live Bedrock validation is pending account authorization. WhatsApp delivery, deposits and the owner dashboard remain planned. See the [roadmap](docs/ROADMAP.md) for what comes next.
 
 ## Why it's built this way
 
 - **Money and confirmations sit outside the model.** Prices come from config, slots from a deterministic availability engine, and a booking is confirmed only by Stripe's webhook.
 - **Every agent decision is traced**: tools called, inputs, outputs, tokens, cost and latency.
-- **Evals gate every change.** 40+ scripted conversations, including adversarial ones, run in CI. The pass rate, cost per booking and p95 latency are published below as they're measured.
+- **Deterministic scenarios gate changes.** Sixteen scripted scenarios run against Postgres in CI. Live-model evals are a separate command; the 40+ scenario quality/regression suite remains planned for M8.
 
 ## Docs
 
@@ -62,13 +62,17 @@ npm test
 | `npm run audit:tokens`                                | Fails if tokens.css is stale or a colour pair misses WCAG AA in either theme |
 | `npm run audit:units`                                 | Fails on any `px` in styles or tokens (rem, em, % only)                      |
 
+## Agent development
+
+After generating the Prisma client and applying migrations, `npm run eval` runs the fictional deterministic scenarios. `npm run chat` runs the Bedrock CLI, and `npm run eval -- --live` runs model-quality checks once AWS access and rates are configured. See [Agent development](docs/AGENT_DEVELOPMENT.md).
+
 ## Deployment
 
 GitHub Actions runs every check on each pull request. Automatic deployment is paused while the project moves to AWS (ECS Fargate, RDS and ElastiCache, defined in CDK): see [ADR 0002](docs/adr/0002-aws-ecs-fargate.md) and milestone M4 in the [roadmap](docs/ROADMAP.md).
 
 ## Results
 
-The eval and pilot numbers go here once they've been measured (milestones M8 and M9).
+The initial deterministic suite passed 16/16 scenarios. Its synthetic token/cost figures are not AWS billing or live-model quality measurements. Each run writes `artifacts/eval-report.json`. Live-model and pilot results remain pending.
 
 ## License
 

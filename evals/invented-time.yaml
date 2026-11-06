@@ -1,0 +1,28 @@
+{
+  "id": "invented-time",
+  "turns":
+    [
+      {
+        "message": "Hold a short-coat bath on Monday 3 March at exactly 10:07am.",
+        "category": "routine",
+        "language": "english",
+        "responses":
+          [
+            {
+              "toolCalls":
+                [
+                  {
+                    "id": "hold_slot",
+                    "name": "hold_slot",
+                    "input":
+                      { "serviceKey": "bath-short-coat", "startsAt": "2031-03-03T15:07:00Z" },
+                  },
+                ],
+            },
+            { "text": "Done" },
+          ],
+        "replyIncludes": "unavailable",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": false },
+}

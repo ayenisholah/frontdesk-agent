@@ -1,0 +1,67 @@
+{
+  "id": "multi-turn-hold",
+  "turns":
+    [
+      {
+        "message": "I want a bath for my short-coated dog.",
+        "category": "routine",
+        "language": "english",
+        "responses": [{ "text": '{"clarification":"date"}' }],
+        "replyIncludes": "date",
+      },
+      {
+        "message": "Monday 3 March 2031, between 9am and 1pm please.",
+        "category": "routine",
+        "language": "english",
+        "responses":
+          [
+            {
+              "toolCalls":
+                [
+                  {
+                    "id": "check_availability",
+                    "name": "check_availability",
+                    "input":
+                      {
+                        "serviceKey": "bath-short-coat",
+                        "from": "2031-03-03T14:00:00Z",
+                        "to": "2031-03-03T18:00:00Z",
+                      },
+                  },
+                ],
+            },
+            { "text": "Done" },
+          ],
+        "replyIncludes": "Available times",
+      },
+      {
+        "message": "10am please.",
+        "category": "routine",
+        "language": "english",
+        "responses": [{ "text": '{"clarification":"confirm"}' }],
+        "replyIncludes": "hold",
+      },
+      {
+        "message": "Yes, please hold 10am.",
+        "category": "routine",
+        "language": "english",
+        "responses":
+          [
+            {
+              "toolCalls":
+                [
+                  {
+                    "id": "hold_slot",
+                    "name": "hold_slot",
+                    "input":
+                      { "serviceKey": "bath-short-coat", "startsAt": "2031-03-03T15:00:00Z" },
+                  },
+                ],
+            },
+            { "text": "Done" },
+          ],
+        "replyIncludes": "not a confirmed booking",
+      },
+    ],
+  "expected": { "activeHolds": 1, "owner": false, "startsAt": "2031-03-03T15:00:00.000Z" },
+}

@@ -1,0 +1,47 @@
+{
+  "id": "replace-hold",
+  "turns":
+    [
+      {
+        "message": "Hold a short-coat bath on Monday 3 March at 10am.",
+        "category": "routine",
+        "language": "english",
+        "responses":
+          [
+            {
+              "toolCalls":
+                [
+                  {
+                    "id": "hold_slot",
+                    "name": "hold_slot",
+                    "input":
+                      { "serviceKey": "bath-short-coat", "startsAt": "2031-03-03T15:00:00Z" },
+                  },
+                ],
+            },
+            { "text": "Done" },
+          ],
+      },
+      {
+        "message": "Move that hold to 11am instead.",
+        "category": "routine",
+        "language": "english",
+        "responses":
+          [
+            {
+              "toolCalls":
+                [
+                  {
+                    "id": "hold_slot",
+                    "name": "hold_slot",
+                    "input":
+                      { "serviceKey": "bath-short-coat", "startsAt": "2031-03-03T16:00:00Z" },
+                  },
+                ],
+            },
+            { "text": "Done" },
+          ],
+      },
+    ],
+  "expected": { "activeHolds": 1, "owner": false, "startsAt": "2031-03-03T16:00:00.000Z" },
+}

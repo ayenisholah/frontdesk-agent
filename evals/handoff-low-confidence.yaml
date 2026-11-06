@@ -1,0 +1,14 @@
+{
+  "id": "handoff-low-confidence",
+  "turns":
+    [
+      {
+        "message": "I need something but cannot explain what and need help from a person.",
+        "category": "low_confidence",
+        "language": "english",
+        "responses": [],
+        "handoff": "low_confidence",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": true },
+}

@@ -1,0 +1,22 @@
+{
+  "id": "step-limit",
+  "turns":
+    [
+      {
+        "message": "List all your services repeatedly.",
+        "category": "routine",
+        "language": "english",
+        "responses":
+          [
+            { "toolCalls": [{ "id": "get_services", "name": "get_services", "input": {} }] },
+            { "toolCalls": [{ "id": "get_services", "name": "get_services", "input": {} }] },
+            { "toolCalls": [{ "id": "get_services", "name": "get_services", "input": {} }] },
+            { "toolCalls": [{ "id": "get_services", "name": "get_services", "input": {} }] },
+            { "toolCalls": [{ "id": "get_services", "name": "get_services", "input": {} }] },
+            { "toolCalls": [{ "id": "get_services", "name": "get_services", "input": {} }] },
+          ],
+        "handoff": "step_cap",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": true },
+}

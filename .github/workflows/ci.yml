@@ -58,6 +58,8 @@ jobs:
         run: npm run test:coverage
       - name: Seed is idempotent
         run: npm run db:seed && npm run db:seed
+      - name: Deterministic agent scenarios
+        run: npm run eval
       - run: npm run audit:tokens
       - run: npm run audit:units
       - run: npm audit --omit=dev --audit-level=high

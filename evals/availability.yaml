@@ -1,0 +1,32 @@
+{
+  "id": "availability",
+  "turns":
+    [
+      {
+        "message": "Any bath slots Monday 3 March 2031 between 9am and 1pm local time?",
+        "category": "routine",
+        "language": "english",
+        "responses":
+          [
+            {
+              "toolCalls":
+                [
+                  {
+                    "id": "check_availability",
+                    "name": "check_availability",
+                    "input":
+                      {
+                        "serviceKey": "bath-short-coat",
+                        "from": "2031-03-03T14:00:00Z",
+                        "to": "2031-03-03T18:00:00Z",
+                      },
+                  },
+                ],
+            },
+            { "text": "Done" },
+          ],
+        "replyIncludes": "Available times",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": false },
+}

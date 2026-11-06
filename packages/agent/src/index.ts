@@ -41,3 +41,12 @@ export type {
   RunInfo,
   UsageRecord,
 } from "./agent-store";
+export {
+  createScriptedModel,
+  evaluateScenario,
+  parseEvalScenario,
+  summarizeEvals,
+  type EvalScenario,
+  type EvaluationResult,
+  type EvaluationState,
+} from "./evaluation";

@@ -1,0 +1,14 @@
+{
+  "id": "non-english",
+  "turns":
+    [
+      {
+        "message": "Bonjour, je voudrais un rendez-vous.",
+        "category": "routine",
+        "language": "other",
+        "responses": [],
+        "replyIncludes": "English",
+      },
+    ],
+  "expected": { "activeHolds": 0, "owner": false },
+}
