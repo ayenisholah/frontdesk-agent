@@ -37,5 +37,5 @@ export function useTestDatabase() {
     await admin?.end();
   });
 
-  return { db: () => db };
+  return { db: () => db, url: () => url };
 }
