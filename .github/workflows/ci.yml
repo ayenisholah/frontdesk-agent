@@ -78,9 +78,16 @@ jobs:
         run: |
           docker run -d --name smoke -p 127.0.0.1:3110:3110 \
             -e DATABASE_URL=postgresql://u:p@127.0.0.1:1/db -e REDIS_URL=redis://127.0.0.1:1 \
+            -e WHATSAPP_WEBHOOK_ENABLED=true -e WHATSAPP_APP_SECRET=fictional-ci-secret -e WHATSAPP_VERIFY_TOKEN=fictional-ci-token \
             frontdesk-api:${{ github.sha }}
           for i in $(seq 1 20); do curl -fsS http://127.0.0.1:3110/healthz && exit 0; sleep 1; done
           docker logs smoke; exit 1
+      - name: Smoke test WhatsApp verification
+        run: |
+          challenge=$(curl -fsS 'http://127.0.0.1:3110/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=fictional-ci-token&hub.challenge=12345')
+          test "$challenge" = "12345"
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3110/webhooks/whatsapp -H 'Content-Type: application/json' -d '{}')
+          test "$status" = "401"
       - name: Check revision label
         run: |
           label=$(docker image inspect frontdesk-api:${{ github.sha }} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')

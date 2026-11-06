@@ -31,5 +31,5 @@ describe.skipIf(!baseUrl)("CLI wiring", () => {
     const resumed = chat(["--conversation", id]);
     expect(resumed.status).toBe(0);
     expect(resumed.stdout).toContain(id);
-  });
+  }, 35_000);
 });

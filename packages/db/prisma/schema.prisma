@@ -81,6 +81,8 @@ model Business {
   createdAt               DateTime @default(now()) @db.Timestamptz
   updatedAt               DateTime @updatedAt @db.Timestamptz
 
+  whatsappRegistrations WhatsAppRegistration[]
+  inboundWork InboundWork[]
   services      Service[]
   openingHours  OpeningHours[]
   customers     Customer[]
@@ -176,6 +178,7 @@ model Message {
   createdAt         DateTime         @default(now()) @db.Timestamptz
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  inboundWork InboundWork?
 
   /// Webhook dedupe (NFR-2): the same provider message is stored once.
   @@unique([channel, providerMessageId])
@@ -325,4 +328,28 @@ model AgentTaskFailure {
   count Int @default(1)
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   @@id([conversationId, task])
+}
+
+/// Trusted routing registry. Never derive a tenant from customer-controlled text.
+model WhatsAppRegistration {
+  phoneNumberId String @id
+  businessId String @db.Uuid
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  @@index([businessId])
+}
+
+/// Durable inbox; future dispatchers enqueue IDs only, never customer content.
+model InboundWork {
+  sequence BigInt @id @default(autoincrement())
+  businessId String @db.Uuid
+  messageId String @unique @db.Uuid
+  phoneNumberId String
+  kind String
+  state String @default("pending")
+  providerTimestamp DateTime @db.Timestamptz
+  receivedAt DateTime @db.Timestamptz
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  @@index([state, sequence])
+  @@index([businessId, sequence])
 }

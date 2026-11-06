@@ -11,7 +11,7 @@ Work is organised into milestones. Each one closes named requirement IDs and end
 | M0 | Foundation | Done |
 | M1 | Availability and bookings | Done |
 | M2 | Agent core | In progress |
-| M3 | WhatsApp | Planned |
+| M3 | WhatsApp | In progress |
 | M4 | AWS platform | Planned |
 | M5 | Deposits | Planned |
 | M6 | Reminders and handoff | Planned |
@@ -41,6 +41,8 @@ Implemented: model loop, Bedrock adapter, validated runtime configuration and bu
 - **Done when:** a CLI conversation books a hold for a real slot, an invented time is refused by `hold_slot`, every turn leaves a full trace, and the injection and unknown-question scenarios end correctly.
 
 ## M3: WhatsApp
+
+Implemented: signature-verified webhook intake, tenant registration, message deduplication and an atomic Postgres inbox. Queue dispatch, ordered agent workers, outbound delivery, retention and real-phone acceptance remain planned. See [WhatsApp development](WHATSAPP_DEVELOPMENT.md). Bedrock authorization and live M2 acceptance are deferred.
 
 - **Closes:** FR-CH-1, FR-CH-2, FR-CH-3, NFR-1, NFR-2, NFR-5, NFR-9, GR-4
 - **Build:** the Express webhook with Meta signature verification and dedupe by message id; a BullMQ inbound queue with per-conversation ordering; the agent worker; an outbound queue with retries, a rate limit, the 24-hour window check and a dead-letter queue; the degraded fallback; logs scrubbed of PII.

@@ -21,6 +21,10 @@ This records how data is meant to be handled. It isn't legal advice. Applicable 
 | Twilio (SMS, stretch) | Phone numbers, messages | Delivery |
 | Stripe | Deposit details | Payment |
 
+WhatsApp intake discards raw payloads, media metadata and profile names. Unsupported
+messages store a fixed placeholder. `InboundWork` holds message references and
+timestamps without duplicating message content, and is deleted with its message.
+
 ## Retention
 
 - Message bodies are kept 90 days by default, and this is configurable (NFR-5).
