@@ -36,8 +36,9 @@ async function execute(
   const { store, config, classifier, model, clock } = options;
   const record = usageRecorder(store, runId, config);
   const classificationStarted = clock().getTime();
-  const response = await classify(classifier, snapshot.messages);
-  await record(config.smallModelId, response.usage);
+  const response = await classify(classifier, snapshot.messages, (usage) =>
+    record(config.smallModelId, usage),
+  );
   const budget = 40_000 - response.usage.inputTokens - response.usage.outputTokens;
   await store.recordStep(runId, 0, {
     call: { id: "classification", name: "classify", input: { modelId: config.smallModelId } },

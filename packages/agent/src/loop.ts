@@ -1,5 +1,6 @@
 // The agent loop: one customer turn in, one reply out. Limits live here in code, not the
 // prompt, so nothing the model or customer says can raise them (GR-5, NFR-4).
+import { recordFailureUsage } from "./model-failure";
 import type { ChatMessage, ModelClient, ToolCall, ToolResult, Usage } from "./model-client";
 import { runTool, toolSpecs, type Tool } from "./tools";
 
@@ -68,7 +69,12 @@ export async function runTurn<Context>(turn: Turn<Context>): Promise<TurnResult>
         tools: specs,
         maxTokens: MAX_OUTPUT_TOKENS,
       });
-    } catch {
+    } catch (error) {
+      await recordFailureUsage(error, async (reported) => {
+        await turn.onUsage?.(reported);
+        usage.inputTokens += reported.inputTokens;
+        usage.outputTokens += reported.outputTokens;
+      });
       return stop("model_error");
     }
     await turn.onUsage?.(response.usage);

@@ -204,3 +204,24 @@ describe("tool failures reach the model as data", () => {
     expect(JSON.stringify(result?.content)).not.toContain("password");
   });
 });
+
+it("records reported usage even when a model response is unusable", async () => {
+  const { ModelFailure } = await import("../src/index");
+  const usage = { inputTokens: 20, outputTokens: 10 };
+  const onUsage = vi.fn(async () => undefined);
+  const model = {
+    complete: vi.fn().mockRejectedValue(new ModelFailure("invalid_response", usage)),
+  };
+  const result = await runTurn({ ...turn(model), onUsage });
+  expect(result.handoff).toBe("model_error");
+  expect(result.usage).toEqual(usage);
+  expect(onUsage).toHaveBeenCalledWith(usage);
+});
+
+it("accounts for unusable responses without requiring trace hooks", async () => {
+  const { ModelFailure } = await import("../src/index");
+  for (const usage of [undefined, { inputTokens: 1, outputTokens: 2 }]) {
+    const model = { complete: vi.fn().mockRejectedValue(new ModelFailure("timeout", usage)) };
+    expect((await runTurn(turn(model))).handoff).toBe("model_error");
+  }
+});
