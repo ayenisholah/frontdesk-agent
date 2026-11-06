@@ -2,6 +2,7 @@ import { Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { z } from "zod";
 import type { InboxRef, DeliveryRef } from "@frontdesk/db";
+import { createSendLimiter } from "./rate-limit";
 
 const deliverySchema = z.strictObject({ businessId: z.uuid(), id: z.uuid() });
 const jobSchema = z.strictObject({
@@ -21,6 +22,8 @@ export function createQueues(options: { url: string; prefix: string; report: () 
   for (const emitter of [producer, consumer, inbound, outbound, dead])
     emitter.on("error", options.report);
   return {
+    ping: () => producer.ping(),
+    limit: createSendLimiter(producer, { prefix: options.prefix }),
     inbound,
     outbound,
     dead,

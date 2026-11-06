@@ -9,6 +9,8 @@ describe.skipIf(!url)("BullMQ transport", () => {
     const queues = createQueues({ url: url!, prefix: `test-${randomUUID()}`, report });
     try {
       await queues.inbound.waitUntilReady();
+      expect(await queues.ping()).toBe("PONG");
+      expect(await queues.limit({ senderId: "fictional", recipientId: "fictional" })).toBe(0);
       const ref = { businessId: randomUUID(), sequence: "1" };
       await queues.inbound.add("inbound", ref, { jobId: "inbound-1" });
       await queues.inbound.add("inbound", ref, { jobId: "inbound-1" });

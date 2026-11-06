@@ -15,10 +15,11 @@ COPY packages/db/package.json packages/db/
 RUN npm ci --ignore-scripts
 COPY tsconfig.base.json ./
 COPY apps/api apps/api
+COPY apps/worker apps/worker
 COPY packages packages
 COPY scripts/build-api.mjs scripts/build-api.mjs
 RUN npm run db:generate
-RUN npm run build -w @frontdesk/api
+RUN npm run build
 
 FROM node:24-alpine AS deps
 WORKDIR /app
@@ -30,7 +31,22 @@ COPY --from=build /src/packages/core/package.json packages/core/
 COPY --from=build /src/packages/agent/package.json packages/agent/
 COPY --from=build /src/packages/channels/package.json packages/channels/
 COPY --from=build /src/packages/db/package.json packages/db/
-RUN npm ci --omit=dev --ignore-scripts -w @frontdesk/api && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts -w @frontdesk/api -w @frontdesk/worker && npm cache clean --force
+
+FROM node:24-alpine AS worker-runtime
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.title="frontdesk-worker" \
+      org.opencontainers.image.revision="${VCS_REF}"
+ENV NODE_ENV=production WORKER_PORT=3111 RELEASE_SHA=${VCS_REF}
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /src/apps/worker/dist ./dist
+COPY --from=build /src/apps/worker/package.json ./package.json
+USER node
+EXPOSE 3111
+HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+process.env.WORKER_PORT+'/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["node", "dist/start.js"]
 
 FROM node:24-alpine AS runtime
 ARG VCS_REF=unknown

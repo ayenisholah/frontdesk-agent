@@ -1,11 +1,8 @@
 # WhatsApp intake development
 
-M3 currently implements authenticated webhook intake and a durable Postgres inbox.
-Queue adapters and database lease primitives are available and integration-tested,
-but the executable worker is not yet wired. The API does not invoke the agent or
-send replies. Keep it disabled
-for real traffic until the executable worker and daily retention schedule are configured.
-Bedrock authorization and live M2 acceptance are deferred.
+M3 implements signed webhook intake, durable inbox and outbound processing, and
+an executable worker with daily retention. Processing is disabled by default.
+Bedrock authorization and real-phone acceptance remain deferred.
 
 ## Local setup
 
@@ -57,16 +54,16 @@ Bodies are limited to 1 MiB; compressed bodies are refused.
 
 Each message commits independently. If a later batch item fails, Meta can retry
 the entire batch; earlier items are deduplicated. No transaction spans provider
-or model calls. Unknown event fields and delivery statuses are acknowledged but
-not persisted. Unsupported message types create a fixed placeholder and an
-`unsupported` inbox marker; the later outbound feature will send the type-text reply.
+or model calls. Unknown event fields are discarded; authenticated delivery statuses
+reconcile durable attempts. Unsupported message types create a fixed placeholder
+and an `unsupported` inbox marker; the worker sends a fixed request for text.
 
 ## Durable inbox and privacy
 
 `InboundWork` contains references, kind, pending state, provider timestamp and
 receipt timestamp. Its sequence records database acceptance order, not a guarantee
-of network arrival order across concurrent requests. A future dispatcher must
-preserve per-conversation order and publish IDs only to Redis.
+of network arrival order across concurrent requests. The dispatcher preserves
+per-conversation claim order and publishes IDs only to Redis.
 
 Text is stored once in `Message`; raw payloads, media, contacts and profile names
 are discarded. Existing owner conversations remain in owner mode; closed threads
@@ -113,8 +110,8 @@ Unsupported input receives a fixed request for text without calling a model.
 Finishing a worker turn commits its run, reply, outbound work and inbox completion
 in one transaction. History follows inbox sequence and includes replies from prior
 completed turns, excluding future queued messages. CLI sandbox turns retain their
-existing history behavior. Delivery adapters are implemented below; there is no
-executable worker service or live sending enabled yet.
+existing history behavior. The executable worker connects the delivery adapters
+below; live sending remains disabled until provider acceptance.
 
 ## Outbound delivery and recovery
 
@@ -179,4 +176,46 @@ cleanup; expired unfinished runs close without replaying tools.
 Inbox claims and outbound sends independently enforce the configured retention
 limit and reject redacted records. Redelivery of a redacted provider message uses
 its tenant/sender/recipient tombstone without comparing the removed body.
-The executable worker's daily scheduling remains the next integration step.
+The executable worker runs cleanup at startup and every 24 hours when enabled.
+
+## Executable runtime and fictional demo
+
+Start Postgres and Redis, apply migrations, then run `npm run demo:whatsapp`.
+This explicit demo accepts local dependency hosts only. It creates an isolated
+fictional tenant and Redis namespace, posts the same signed webhook twice, runs
+scripted inference through the real queues/database, injects a successful send,
+and posts a signed delivery status. It prints aggregate results and removes its
+fixture. It never calls Bedrock or Meta and does not read their credentials.
+
+`npm run dev:worker` starts the normal worker; `npm run build` builds API and worker.
+The normal worker always uses real providers when enabled. There is no automatic
+fake-provider fallback. Configure:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `INBOUND_WORKER_ENABLED` | `false` | Claim inbox work and run Bedrock inference |
+| `OUTBOUND_WORKER_ENABLED` | `false` | Deliver durable replies through Meta |
+| `CONTENT_RETENTION_ENABLED` | `false` | Run tenant-scoped cleanup |
+| `CONTENT_RETENTION_DAYS` | `90` | Content age limit, 1–3650 days |
+| `QUEUE_PREFIX` | `frontdesk` | Shared namespace for all replicas |
+| `WORKER_PORT` | `3111` | Internal health/metrics port |
+
+Inbound or outbound processing requires retention to be enabled. Inbound processing
+also requires validated EU model IDs and versioned rates. Outbound processing uses
+the registered `WHATSAPP_*_TOKEN` environment reference and verified templates.
+The owner template needs one body parameter for the incident ID; the optional
+customer template must need no parameters. Real setup remains deferred.
+
+Reconciliation runs every second without overlapping sweeps. It republishes due
+Postgres work and mirrors recent terminal references into the dead queue. Retention
+runs at startup and every 24 hours, draining batches of 100 per business. Failures
+increment fixed aggregate counters; no raw dependency errors are logged.
+`/healthz` checks process liveness; `/readyz` requires Postgres and Redis within two
+seconds and returns 503 during shutdown. `/metrics` exposes bounded error counters.
+Keep these endpoints on the internal network. SIGTERM/SIGINT cancel active inference,
+stop scheduling, drain workers and close connections, with a 30-second deadline.
+
+`docker compose --profile worker up --build worker` starts the optional local worker
+with all processing flags off. The Docker target is `worker-runtime`; the default
+image remains the API. CI checks both images, dependency-unavailable readiness,
+clean worker shutdown, and rejection of missing model configuration.

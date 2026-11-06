@@ -27,6 +27,18 @@ function fixture() {
   return { ...dependencies, process: createInboundProcessor(dependencies) };
 }
 describe("inbound processor", () => {
+  it("passes shutdown cancellation into active inference", async () => {
+    const f = fixture();
+    const controller = new AbortController();
+    let observed!: AbortSignal;
+    f.execute.mockImplementation(async (_claim, signal: AbortSignal) => {
+      observed = signal;
+      controller.abort();
+      return { state: "replied" };
+    });
+    await createInboundProcessor({ ...f, shutdownSignal: controller.signal })(ref);
+    expect(observed.aborted).toBe(true);
+  });
   it("ignores unclaimed work and completes already handled work without inference", async () => {
     const f = fixture();
     f.inbox().claim.mockResolvedValueOnce({ state: "busy" });
