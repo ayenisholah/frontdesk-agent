@@ -125,7 +125,7 @@ describe("createBedrockClient request", () => {
       timeoutMs: 1,
     });
     await expect(client.complete(request([{ role: "user", text: "Hi" }]))).rejects.toThrow(
-      "aborted",
+      "Model timeout",
     );
   });
 });
@@ -180,4 +180,15 @@ describe("default sender", () => {
     const client = createBedrockClient({ region: "eu-west-1", modelId: MODEL });
     expect(client.complete).toBeTypeOf("function");
   });
+});
+
+it("sanitizes provider errors and refuses truncated responses", async () => {
+  const send = vi.fn().mockRejectedValue(new Error("secret provider payload"));
+  const client = createBedrockClient({ region: "eu-west-1", modelId: MODEL, sender: { send } });
+  await expect(client.complete(request([]))).rejects.toThrow("Model unavailable");
+  const truncated = stub({ stopReason: "max_tokens" }).client;
+  await expect(truncated.complete(request([]))).rejects.toThrow("Model invalid_response");
+  await expect(
+    stub({ stopReason: "end_turn" }).client.complete(request([])),
+  ).resolves.toBeDefined();
 });
