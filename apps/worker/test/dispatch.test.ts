@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { dispatchInbox } from "../src/dispatch";
+import { dispatchInbox, dispatchOutbound, dispatchDead } from "../src/dispatch";
 
 describe("inbox dispatcher", () => {
   it("publishes IDs only with stable deduplication and retries a failed publish", async () => {
@@ -16,4 +16,26 @@ describe("inbox dispatcher", () => {
     listDue.mockResolvedValue([]);
     expect(await dispatchInbox({ listDue }, { add })).toBe(0);
   });
+});
+
+it("publishes outbound references with stable IDs", async () => {
+  const ref = { businessId: "business", id: "reply" };
+  const queue = { add: vi.fn().mockResolvedValue(undefined) };
+  expect(await dispatchOutbound({ listDue: async () => [ref] }, queue)).toBe(1);
+  expect(queue.add).toHaveBeenCalledWith(
+    "outbound",
+    ref,
+    expect.objectContaining({ jobId: "outbound-reply" }),
+  );
+});
+
+it("mirrors durable dead letters with stable identifier-only jobs", async () => {
+  const ref = { businessId: "business", id: "failed" };
+  const queue = { add: vi.fn().mockResolvedValue(undefined) };
+  expect(await dispatchDead({ listDue: async () => [ref] }, queue)).toBe(1);
+  expect(queue.add).toHaveBeenCalledWith(
+    "dead",
+    ref,
+    expect.objectContaining({ jobId: "dead-failed" }),
+  );
 });

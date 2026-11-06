@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { normalizePhone } from "@frontdesk/core";
 import { z } from "zod";
+import { whatsappChanges, whatsappTimestamp } from "./whatsapp-envelope";
 
 export interface InboundMessage {
   phoneNumberId: string;
@@ -28,21 +29,11 @@ const messageSchema = z
   .object({
     id,
     from: z.string().transform(normalizePhone).pipe(z.string()),
-    timestamp: z
-      .string()
-      .regex(/^\d{1,12}$/)
-      .transform(Number)
-      .refine((n) => n <= 253402300799),
+    timestamp: whatsappTimestamp,
     type: id,
     text: z.object({ body: z.string().min(1).max(4096) }).optional(),
   })
   .refine((m) => m.type !== "text" || m.text !== undefined);
-const envelopeSchema = z.object({
-  object: z.literal("whatsapp_business_account"),
-  entry: z.array(
-    z.object({ changes: z.array(z.object({ field: z.string(), value: z.unknown() })) }),
-  ),
-});
 const messagesSchema = z
   .object({
     metadata: z.object({ phone_number_id: z.string().regex(/^\d{1,32}$/) }).optional(),
@@ -53,21 +44,17 @@ const messagesSchema = z
 /** Strip unknown fields; never retain raw payloads or unsupported media metadata. */
 export function parseWhatsAppWebhook(payload: unknown): InboundMessage[] {
   try {
-    const envelope = envelopeSchema.parse(payload);
-    return envelope.entry.flatMap((entry) =>
-      entry.changes.flatMap((change) => {
-        if (change.field !== "messages") return [];
-        const value = messagesSchema.parse(change.value);
-        return value.messages.map((message): InboundMessage => ({
-          phoneNumberId: value.metadata!.phone_number_id,
-          providerMessageId: message.id,
-          phone: message.from,
-          providerTimestamp: new Date(message.timestamp * 1000),
-          kind: message.type === "text" ? "text" : "unsupported",
-          body: message.type === "text" ? message.text!.body : "[Unsupported WhatsApp message]",
-        }));
-      }),
-    );
+    return whatsappChanges(payload).flatMap((change) => {
+      const value = messagesSchema.parse(change);
+      return value.messages.map((message): InboundMessage => ({
+        phoneNumberId: value.metadata!.phone_number_id,
+        providerMessageId: message.id,
+        phone: message.from,
+        providerTimestamp: new Date(message.timestamp * 1000),
+        kind: message.type === "text" ? "text" : "unsupported",
+        body: message.type === "text" ? message.text!.body : "[Unsupported WhatsApp message]",
+      }));
+    });
   } catch {
     throw new Error("Invalid WhatsApp payload");
   }

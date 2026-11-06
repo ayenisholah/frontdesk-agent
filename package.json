@@ -34,7 +34,8 @@
     "audit:units": "node scripts/audit-units.mjs",
     "chat": "node --env-file-if-exists=.env --import tsx scripts/chat.ts",
     "eval": "node --env-file-if-exists=.env --import tsx scripts/eval.ts",
-    "whatsapp:register": "node --env-file-if-exists=.env --import tsx packages/db/scripts/register-whatsapp.ts"
+    "whatsapp:register": "node --env-file-if-exists=.env --import tsx packages/db/scripts/register-whatsapp.ts",
+    "whatsapp:delivery": "node --env-file-if-exists=.env --import tsx packages/db/scripts/delivery.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",

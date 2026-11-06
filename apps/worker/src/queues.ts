@@ -1,8 +1,9 @@
 import { Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { z } from "zod";
-import type { InboxRef } from "@frontdesk/db";
+import type { InboxRef, DeliveryRef } from "@frontdesk/db";
 
+const deliverySchema = z.strictObject({ businessId: z.uuid(), id: z.uuid() });
 const jobSchema = z.strictObject({
   businessId: z.uuid(),
   sequence: z.string().regex(/^[1-9]\d{0,18}$/),
@@ -14,8 +15,8 @@ export function createQueues(options: { url: string; prefix: string; report: () 
   const consumer = new Redis(options.url, { maxRetriesPerRequest: null });
   const shared = { connection: producer, prefix: options.prefix };
   const inbound = new Queue<InboxRef>("inbound", shared);
-  const outbound = new Queue("outbound", shared);
-  const dead = new Queue("dead", shared);
+  const outbound = new Queue<DeliveryRef>("outbound", shared);
+  const dead = new Queue<DeliveryRef>("dead", shared);
   const workers: Worker[] = [];
   for (const emitter of [producer, consumer, inbound, outbound, dead])
     emitter.on("error", options.report);
@@ -23,24 +24,10 @@ export function createQueues(options: { url: string; prefix: string; report: () 
     inbound,
     outbound,
     dead,
-    worker(handle: (ref: InboxRef) => Promise<void>) {
-      const worker = new Worker(
-        "inbound",
-        async (job) => {
-          const parsed = jobSchema.safeParse(job.data);
-          if (!parsed.success) throw new Error("Invalid queue payload");
-          try {
-            await handle(parsed.data);
-          } catch {
-            throw new Error("Inbound processing failed");
-          }
-        },
-        { connection: consumer, prefix: options.prefix, concurrency: 4 },
-      );
-      worker.on("error", options.report);
-      workers.push(worker);
-      return worker;
-    },
+    worker: (handle: (ref: InboxRef) => Promise<void>) =>
+      startWorker({ ...options, consumer, workers }, "inbound", jobSchema, handle),
+    outboundWorker: (handle: (ref: DeliveryRef) => Promise<void>) =>
+      startWorker({ ...options, consumer, workers }, "outbound", deliverySchema, handle),
     async close() {
       try {
         await Promise.all(workers.map((worker) => worker.close()));
@@ -51,4 +38,28 @@ export function createQueues(options: { url: string; prefix: string; report: () 
       }
     },
   };
+}
+
+function startWorker<T>(
+  context: { consumer: Redis; prefix: string; workers: Worker[]; report: () => void },
+  name: string,
+  schema: z.ZodType<T>,
+  handle: (ref: T) => Promise<void>,
+) {
+  const worker = new Worker(
+    name,
+    async (job) => {
+      const parsed = schema.safeParse(job.data);
+      if (!parsed.success) throw new Error("Invalid queue payload");
+      try {
+        await handle(parsed.data);
+      } catch {
+        throw new Error("Queue processing failed");
+      }
+    },
+    { connection: context.consumer, prefix: context.prefix, concurrency: 4 },
+  );
+  worker.on("error", context.report);
+  context.workers.push(worker);
+  return worker;
 }

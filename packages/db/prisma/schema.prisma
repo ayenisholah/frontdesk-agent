@@ -84,6 +84,7 @@ model Business {
   whatsappRegistrations WhatsAppRegistration[]
   inboundWork InboundWork[]
   outboundWork OutboundWork[]
+  deliveryIncidents DeliveryIncident[]
   services      Service[]
   openingHours  OpeningHours[]
   customers     Customer[]
@@ -336,6 +337,10 @@ model AgentTaskFailure {
 /// Trusted routing registry. Never derive a tenant from customer-controlled text.
 model WhatsAppRegistration {
   phoneNumberId String @id
+  credentialEnv String?
+  graphVersion String?
+  ownerPhone String?
+  templates Json @default("{}")
   businessId String @db.Uuid
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   @@index([businessId])
@@ -369,13 +374,48 @@ model OutboundWork {
   id String @id @default(uuid()) @db.Uuid
   businessId String @db.Uuid
   messageId String @unique @db.Uuid
-  inboundSequence BigInt @unique
+  inboundSequence BigInt? @unique
   phoneNumberId String
   allowOwner Boolean @default(false)
+  ownerReason String?
+  recipientRole String @default("customer")
+  incidentId String? @unique @db.Uuid
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now()) @db.Timestamptz
+  leaseUntil DateTime? @db.Timestamptz
+  finishedAt DateTime? @db.Timestamptz
+  reason String?
+  attemptsLog DeliveryAttempt[]
+
   state String @default("pending")
   createdAt DateTime @default(now()) @db.Timestamptz
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  inbound InboundWork @relation(fields: [inboundSequence], references: [sequence], onDelete: Cascade)
+  inbound InboundWork? @relation(fields: [inboundSequence], references: [sequence], onDelete: Cascade)
   @@index([businessId, state, createdAt])
+}
+
+model DeliveryAttempt {
+  id String @id @default(uuid()) @db.Uuid
+  outboundId String @db.Uuid
+  number Int
+  recipientHash String
+  lastStatusAt DateTime? @db.Timestamptz
+  state String @default("started")
+  providerMessageId String?
+  startedAt DateTime @db.Timestamptz
+  finishedAt DateTime? @db.Timestamptz
+  outbound OutboundWork @relation(fields: [outboundId], references: [id], onDelete: Cascade)
+  @@unique([outboundId, number])
+}
+model DeliveryIncident {
+  id String @id @default(uuid()) @db.Uuid
+  businessId String @db.Uuid
+  conversationId String @db.Uuid
+  outboundId String @unique @db.Uuid
+  reason String
+  state String @default("pending")
+  createdAt DateTime @default(now()) @db.Timestamptz
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  @@index([businessId, state])
 }

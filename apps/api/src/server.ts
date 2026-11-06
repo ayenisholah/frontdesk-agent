@@ -1,4 +1,4 @@
-import { createDb, createWhatsAppIntake } from "@frontdesk/db";
+import { createDb, createWhatsAppIntake, createWhatsAppStatusIntake } from "@frontdesk/db";
 import { createApp } from "./app.js";
 import { createDependencies } from "./checks.js";
 import { loadConfig } from "./config.js";
@@ -21,6 +21,7 @@ const app = createApp({
         appSecret: config.WHATSAPP_APP_SECRET!,
         verifyToken: config.WHATSAPP_VERIFY_TOKEN!,
         accept: createWhatsAppIntake(db, () => new Date()),
+        acceptStatus: createWhatsAppStatusIntake(db, () => new Date()),
       }
     : undefined,
 });

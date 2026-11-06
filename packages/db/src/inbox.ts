@@ -78,6 +78,15 @@ export function createInboxStore(db: Db, businessId: string, clock: Clock) {
       });
     });
   return {
+    async listDead() {
+      const rows = await db.inboundWork.findMany({
+        where: { businessId, state: "dead" },
+        select: { sequence: true },
+        orderBy: { sequence: "desc" },
+        take: 100,
+      });
+      return rows.map((row) => ({ businessId, id: String(row.sequence) }));
+    },
     async listDue(): Promise<InboxRef[]> {
       const now = clock();
       const rows = await db.$queryRaw<{ sequence: bigint }[]>`

@@ -113,5 +113,57 @@ Unsupported input receives a fixed request for text without calling a model.
 Finishing a worker turn commits its run, reply, outbound work and inbox completion
 in one transaction. History follows inbox sequence and includes replies from prior
 completed turns, excluding future queued messages. CLI sandbox turns retain their
-existing history behavior. Outbound work is durable but delivery remains planned;
-there is no executable worker service or live sending enabled yet.
+existing history behavior. Delivery adapters are implemented below; there is no
+executable worker service or live sending enabled yet.
+
+## Outbound delivery and recovery
+
+Outbound work is ordered within a conversation. A durable attempt precedes each
+provider request; no transaction spans the network call. Explicit transient
+rejections get up to five attempts, with 1, 5, 30 and 120-second delays plus jitter,
+honoring longer `Retry-After` values. The transport has a 15-second deadline and an
+explicit Graph API version. Shared Redis reservations default to 10 messages per
+second per sender and one message per six seconds per recipient; configuration
+can lower those rates.
+
+Timeouts, connection loss, malformed responses and abandoned in-flight attempts
+become **uncertain**. They are never automatically resent. The conversation hands
+off, and an approved owner template carries only the internal incident ID. Failure
+of that alert remains visible in the incident ledger and cannot generate another
+alert. Postgres is the authoritative dead-letter ledger; the dead BullMQ queue can
+mirror the most recent 100 dead/uncertain references per business.
+
+Signed status callbacks correlate the registered sender, recipient hash, attempt
+ID or known provider ID. Duplicate callbacks are harmless, older callbacks are
+ignored, and delivered/read states cannot regress. An operator can also record
+acceptance or failure without resending; that does not hand the thread back to the
+agent.
+
+The send transaction rechecks ownership and the 24-hour customer window. Outside
+that window it uses only fixed configured templates with approval verified within
+24 hours; arbitrary agent replies never become template parameters. Missing or
+stale approval suppresses sending and creates an incident. Only the final reply
+from the agent's own handoff can pass the owner-status check.
+
+### Provision sender metadata
+
+The existing registration command accepts `--configure-delivery`, `--token-env`,
+`--graph-version`, `--waba-id`, `--owner-phone`, `--owner-template` and
+`--owner-language`. Optional `--customer-template` and `--customer-language` select
+the fixed outside-window response. The token environment name must match
+`WHATSAPP_*_TOKEN`; its value is never written to Postgres. The command verifies
+exact template names, languages and `APPROVED` status with Meta before saving
+metadata. Rerun provisioning to refresh template verification before it expires.
+These live prerequisites remain deferred; tests inject HTTP responses.
+
+### Inspect or resolve deliveries
+
+```sh
+npm run whatsapp:delivery -- --business-id BUSINESS_UUID --inspect
+npm run whatsapp:delivery -- --business-id BUSINESS_UUID --resolve-id OUTBOUND_UUID --resolution accepted --provider-id PROVIDER_ID
+npm run whatsapp:delivery -- --business-id BUSINESS_UUID --resolve-id OUTBOUND_UUID --resolution dead
+```
+
+Inspection returns recent internal IDs, states, attempts, reasons and timestamps,
+never phone numbers or message bodies. Resolution only accepts uncertain work and
+never calls the provider. There is no public administration endpoint.

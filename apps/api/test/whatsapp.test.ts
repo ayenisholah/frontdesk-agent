@@ -34,12 +34,13 @@ const payload = JSON.stringify({
 });
 function setup() {
   const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+  const acceptStatus = vi.fn().mockResolvedValue("matched");
   const accept = vi.fn().mockResolvedValue("accepted");
   const app = createApp({
     checks: {},
     log,
     release: "test",
-    whatsapp: { appSecret: secret, verifyToken: "fictional-token", accept },
+    whatsapp: { appSecret: secret, verifyToken: "fictional-token", accept, acceptStatus },
   });
   const post = (
     body = payload,
@@ -50,7 +51,7 @@ function setup() {
       .set("Content-Type", "application/json")
       .set("X-Hub-Signature-256", signature)
       .send(body);
-  return { app, log, accept, post };
+  return { app, log, accept, acceptStatus, post };
 }
 
 describe("WhatsApp webhook", () => {
@@ -220,4 +221,35 @@ describe("WhatsApp webhook", () => {
       }).WHATSAPP_WEBHOOK_ENABLED,
     ).toBe(true);
   });
+});
+
+it("accepts delivery statuses only after signature verification", async () => {
+  const { post, acceptStatus } = setup();
+  const body = JSON.stringify({
+    object: "whatsapp_business_account",
+    entry: [
+      {
+        changes: [
+          {
+            field: "messages",
+            value: {
+              metadata: { phone_number_id: "123" },
+              statuses: [
+                {
+                  id: "wamid.test",
+                  recipient_id: "12025550100",
+                  timestamp: "1920000000",
+                  status: "delivered",
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  });
+  expect((await post(body, "invalid")).status).toBe(401);
+  expect(acceptStatus).not.toHaveBeenCalled();
+  expect((await post(body)).status).toBe(200);
+  expect(acceptStatus).toHaveBeenCalledOnce();
 });

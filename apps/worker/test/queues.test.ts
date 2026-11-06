@@ -31,7 +31,7 @@ describe.skipIf(!url)("BullMQ transport", () => {
       await vi.waitFor(
         async () =>
           expect((await queues.inbound.getJob(failed.id!))?.failedReason).toBe(
-            "Inbound processing failed",
+            "Queue processing failed",
           ),
         { timeout: 5000 },
       );
@@ -43,6 +43,14 @@ describe.skipIf(!url)("BullMQ transport", () => {
       ];
       for (const emitter of emitters) emitter.emit("error", new Error("private error"));
       expect(report).toHaveBeenCalledTimes(4);
+      const delivered = vi.fn().mockResolvedValue(undefined);
+      const outboundWorker = queues.outboundWorker(delivered);
+      const outboundRef = { businessId: ref.businessId, id: randomUUID() };
+      await queues.outbound.add("outbound", outboundRef);
+      await vi.waitFor(() => expect(delivered).toHaveBeenCalledWith(outboundRef), {
+        timeout: 5000,
+      });
+      await outboundWorker.close();
       await worker.close();
       await Promise.all([
         queues.inbound.obliterate({ force: true }),

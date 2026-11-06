@@ -3,6 +3,8 @@ import { rateLimit } from "express-rate-limit";
 import express from "express";
 import {
   parseWhatsAppWebhook,
+  parseWhatsAppStatuses,
+  type WhatsAppStatus,
   verifyWhatsAppSignature,
   type AcceptInbound,
 } from "@frontdesk/channels";
@@ -12,6 +14,7 @@ export interface WhatsAppOptions {
   appSecret: string;
   verifyToken: string;
   accept: AcceptInbound;
+  acceptStatus?: (status: WhatsAppStatus) => Promise<unknown>;
 }
 
 export function createWhatsAppRouter(options: WhatsAppOptions, log: Logger) {
@@ -65,8 +68,11 @@ function createMessageHandler(options: WhatsAppOptions, log: Logger): express.Re
       return;
     }
     let messages;
+    let statuses;
     try {
-      messages = parseWhatsAppWebhook(JSON.parse(body.toString("utf8")));
+      const payload: unknown = JSON.parse(body.toString("utf8"));
+      messages = parseWhatsAppWebhook(payload);
+      statuses = parseWhatsAppStatuses(payload);
     } catch {
       res.sendStatus(400);
       return;
@@ -80,10 +86,15 @@ function createMessageHandler(options: WhatsAppOptions, log: Logger): express.Re
           return;
         }
       }
+      await acceptStatuses(options, statuses);
       res.sendStatus(200);
     } catch {
       log.error("whatsapp storage unavailable", { code: "storage_failure" });
       res.sendStatus(503);
     }
   };
+}
+
+async function acceptStatuses(options: WhatsAppOptions, statuses: WhatsAppStatus[]) {
+  for (const status of statuses) await options.acceptStatus?.(status);
 }
