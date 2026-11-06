@@ -100,5 +100,6 @@ describe.skipIf(!baseUrl)("inbox leases", () => {
       advance(60_000);
     }
     expect((await store.claim(id)).state).toBe("terminal");
+    expect(await store.listDead()).toHaveLength(1);
   });
 });

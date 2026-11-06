@@ -26,3 +26,7 @@ export type { InboxRef, InboxClaim } from "./inbox";
 export { LeaseLost } from "./inbox-lease";
 export type { InboxLease } from "./inbox-lease";
 export { prepareInboxTurn } from "./worker-turn";
+export { createDeliveryStore, type DeliveryRef } from "./delivery";
+export { createWhatsAppStatusIntake } from "./delivery-status";
+export { configureWhatsAppDelivery } from "./delivery-config";
+export { createDeliveryOperator } from "./delivery-operator";

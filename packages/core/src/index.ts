@@ -15,3 +15,4 @@ export {
   type ServiceConfig,
 } from "./config";
 export { harborPaws } from "./fixtures/harbor-paws";
+export { messagePolicy } from "./messaging";

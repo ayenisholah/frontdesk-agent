@@ -34,6 +34,9 @@ export async function queueReply(
   reply: { messageId: string; allowOwner: boolean },
 ) {
   const row = await leasedInbox(tx, scope, now);
+  const conversation = await tx.conversation.findFirstOrThrow({
+    where: { id: scope.conversationId, businessId: scope.businessId },
+  });
   await tx.outboundWork.create({
     data: {
       businessId: scope.businessId,
@@ -41,6 +44,8 @@ export async function queueReply(
       inboundSequence: row.sequence,
       phoneNumberId: row.phoneNumberId,
       allowOwner: reply.allowOwner,
+      ownerReason: conversation.handoffReason,
+      nextAttemptAt: now,
       createdAt: now,
     },
   });
