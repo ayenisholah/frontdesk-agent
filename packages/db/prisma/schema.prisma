@@ -158,6 +158,7 @@ model Conversation {
   messages  Message[]
   holds     Hold[]
   agentRuns AgentRun[]
+  taskFailures AgentTaskFailure[]
 
   @@index([businessId, status, updatedAt])
   @@index([customerId])
@@ -257,6 +258,8 @@ model AgentRun {
   triggerMessageId String?     @db.Uuid
   model            String
   promptVersion    String
+  ratesVersion     String @default("unversioned")
+  reply            String?
   inputTokens      Int         @default(0)
   outputTokens     Int         @default(0)
   /// Cost in millionths of a US dollar, to keep sub-cent precision in integers.
@@ -269,8 +272,10 @@ model AgentRun {
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   steps        AgentStep[]
   executions   ToolExecution[]
+  usage        AgentUsage[]
 
   @@index([conversationId, startedAt])
+  @@unique([conversationId, triggerMessageId])
 }
 
 model AgentStep {
@@ -300,4 +305,24 @@ model ToolExecution {
   createdAt DateTime @default(now()) @db.Timestamptz
   run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   @@unique([runId, callId])
+}
+
+model AgentUsage {
+  id String @id @default(uuid()) @db.Uuid
+  runId String @db.Uuid
+  modelId String
+  inputTokens Int
+  outputTokens Int
+  costMicros Int
+  ratesVersion String
+  run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  @@index([runId])
+}
+
+model AgentTaskFailure {
+  conversationId String @db.Uuid
+  task String
+  count Int @default(1)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  @@id([conversationId, task])
 }

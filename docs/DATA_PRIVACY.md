@@ -24,7 +24,7 @@ This records how data is meant to be handled. It isn't legal advice. Applicable 
 ## Retention
 
 - Message bodies are kept 90 days by default, and this is configurable (NFR-5).
-- `AgentStep` content must follow the same limit, because it can contain message text.
+- `AgentStep`, `ToolExecution` and `AgentRun.reply` content must follow the same limit, because they can contain message text.
 - Booking and payment records may need longer retention for accounting; decide before the pilot.
 
 The retention job is **planned** (M3). Until it exists, no real customer data goes into the system.
