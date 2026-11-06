@@ -24,7 +24,7 @@ async function main() {
   const clock = () => new Date();
   const model = createBedrockClient({ region: config.region, modelId: config.modelId });
   const classifier = createBedrockClient({ region: config.region, modelId: config.smallModelId });
-  const input = createInterface({ input: process.stdin, output: process.stdout, prompt: "> " });
+  let input: ReturnType<typeof createInterface> | undefined;
   try {
     const scope = await openSandbox(db, {
       fixture: values.fixture,
@@ -33,6 +33,7 @@ async function main() {
     });
     const store = createAgentStore(db, scope, clock);
     console.log(`Fictional chat session: ${scope.conversationId}\nType :quit to exit.`);
+    input = createInterface({ input: process.stdin, output: process.stdout, prompt: "> " });
     input.prompt();
     for await (const line of input) {
       if (line.trim() === ":quit") break;
@@ -47,7 +48,7 @@ async function main() {
       input.prompt();
     }
   } finally {
-    input.close();
+    input?.close();
     await db.$disconnect();
   }
 }
