@@ -120,15 +120,14 @@ describe("limits (GR-5, NFR-4)", () => {
     expect(result.handoff).toBe("step_cap");
     expect(result.reply).toBe(HANDOFF);
     expect(result.steps).toHaveLength(6);
-    expect(requests).toHaveLength(7);
+    expect(requests).toHaveLength(6);
   });
 
-  it("allows exactly 6 steps", async () => {
+  it("hands off immediately after exactly 6 steps", async () => {
     const six = Array.from({ length: 6 }, () => ({ toolCalls: [call("noop")] }));
     const { client } = fakeModel([...six, { text: "Done" }]);
     const result = await runTurn(turn(client));
-    expect(result.reply).toBe("Done");
-    expect(result.handoff).toBeUndefined();
+    expect(result.handoff).toBe("step_cap");
   });
 
   it("can't get past the cap by batching calls into one response", async () => {
