@@ -3,10 +3,12 @@ import type { InfraConfig } from "./config";
 import { applySecurityChecks } from "./security";
 import { createStack } from "./stack";
 import { createNetwork } from "./network";
+import { createDataServices } from "./data";
 export function createFoundation(config: InfraConfig) {
   const app = new App({
     context: {
       "@aws-cdk/aws-ec2:restrictDefaultSecurityGroup": true,
+      "@aws-cdk/core:defaultCrossStackReferences": "strong",
       [`availability-zones:account=${config.account}:region=${config.region}`]:
         config.availabilityZones,
     },
@@ -14,6 +16,8 @@ export function createFoundation(config: InfraConfig) {
   const platform = createStack(app, "platform", config);
   const network = createStack(app, "network", config);
   const networking = createNetwork(network, config);
+  const data = createStack(app, "data", config);
+  createDataServices(data, networking, config);
   const cluster = new ecs.Cluster(platform, "Cluster", {
     vpc: networking.vpc,
     containerInsightsV2: ecs.ContainerInsights.ENABLED,
@@ -33,5 +37,5 @@ export function createFoundation(config: InfraConfig) {
   Tags.of(app).add("ManagedBy", "cdk");
   new CfnOutput(platform, "Region", { value: config.region });
   applySecurityChecks(app);
-  return { app, platform, network, networking };
+  return { app, platform, network, networking, data };
 }

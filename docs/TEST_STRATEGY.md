@@ -69,3 +69,9 @@ synthesized resource properties, while `cdk-nag` checks security during strict,
 lookup-free synthesis. The wiring-only `infra/bin/app.ts` is exercised by
 `npm run infra:synth` in CI. A deliberately unrestricted database ingress rule
 must produce `AwsSolutions-EC23` in the security-gate test.
+
+Infrastructure synthesis tests have a 20-second per-test limit because they run
+CDK and CloudFormation policy validation over the complete three-stack assembly.
+Assertions cover isolated subnet membership, security-group relationships, TLS,
+backups, encryption, generated credentials and retention policies. A planted
+infrastructure-to-runtime import also verified the dependency boundary fails.

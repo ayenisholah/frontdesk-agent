@@ -51,4 +51,4 @@ it("isolates data, gives application subnets one NAT, and opens only scoped data
   expect(network.terminationProtection).toBe(true);
   expect(app.synth().manifest.missing).toBeUndefined();
   template.hasOutput("VpcId", { Value: Match.anyValue() });
-});
+}, 20_000);
