@@ -2,7 +2,7 @@
 # Frontdesk API image. Built in CI with VCS_REF=<full git sha>; the deploy script refuses
 # an image whose revision label doesn't match the SHA it was asked to deploy.
 
-FROM node:24-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
 COPY infra/package.json infra/
@@ -23,7 +23,7 @@ COPY scripts/build-api.mjs scripts/build-api.mjs
 RUN npm run db:generate
 RUN npm run build
 
-FROM node:24-alpine AS deps
+FROM node:25-alpine AS deps
 WORKDIR /app
 COPY --from=build /src/package.json /src/package-lock.json ./
 COPY --from=build /src/infra/package.json infra/
@@ -47,7 +47,7 @@ WORKDIR /src/packages/db
 USER node
 CMD ["node", "--import", "tsx", "scripts/prepare-runtime.ts"]
 
-FROM node:24-alpine AS worker-runtime
+FROM node:25-alpine AS worker-runtime
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.title="frontdesk-worker" \
       org.opencontainers.image.revision="${VCS_REF}"
@@ -64,7 +64,7 @@ HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+process.env.WORKER_PORT+'/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "dist/start.js"]
 
-FROM node:24-alpine AS runtime
+FROM node:25-alpine AS runtime
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.title="frontdesk-api" \
       org.opencontainers.image.source="https://github.com/ayenisholah/frontdesk-agent" \
