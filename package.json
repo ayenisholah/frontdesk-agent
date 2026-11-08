@@ -50,7 +50,7 @@
     "@frontdesk/db": "0.1.0",
     "@types/node": "^24.19.2",
     "@vitest/coverage-v8": "^4.1.12",
-    "dependency-cruiser": "^17.4.3",
+    "dependency-cruiser": "^18.7.2",
     "esbuild": "^0.28.2",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
