@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { monitoringSchema } from "./monitoring-config";
 const schema = z.strictObject({
+  monitoring: monitoringSchema.optional(),
   deployment: z
     .strictObject({
       enabled: z.literal(true),
@@ -35,7 +37,7 @@ export function parseInfraConfig(input: unknown): InfraConfig {
   const result = schema.safeParse(input);
   if (
     !result.success ||
-    (result.data.deployment && !result.data.runtime) ||
+    ((result.data.deployment || result.data.monitoring) && !result.data.runtime) ||
     (result.data.deployment?.providerArn &&
       !result.data.deployment.providerArn.includes(`::${result.data.account}:`)) ||
     (result.data.runtime &&

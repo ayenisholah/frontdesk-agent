@@ -15,13 +15,10 @@ import { createRuntimeCredential } from "./runtime-secrets";
 import { createReleaseParameters } from "./release-parameters";
 import { createTask } from "./tasks";
 export function createServices(ctx: RuntimeContext) {
-  const { stack, data, platform } = ctx;
+  const { platform } = ctx;
   const release = createReleaseParameters(ctx);
   const credential = createRuntimeCredential(ctx);
-  const admin = secrets.Secret.fromSecretAttributes(stack, "DatabaseAdministrator", {
-    secretCompleteArn: data.database.attrMasterUserSecretSecretArn,
-    encryptionKey: data.key,
-  });
+  const admin = administrator(ctx);
   const api = createTask(ctx, {
     name: "api",
     releaseSha: release.app,
@@ -54,24 +51,18 @@ export function createServices(ctx: RuntimeContext) {
     group: ctx.network.worker,
     desiredCount: release.desiredCount,
   });
-  const targetGroup = addIngress(ctx, apiService);
-  new CfnOutput(stack, "MigrationTaskDefinitionArn", { value: migration.task.taskDefinitionArn });
-  new CfnOutput(stack, "MigrationRepositoryUri", { value: repository.repositoryUri });
-  new CfnOutput(stack, "RuntimeCredentialSecretArn", { value: credential.secretArn });
-  new CfnOutput(stack, "ReleaseSha", { value: release.app });
-  const outputs = {
-    MigrationRelease: release.migration,
-    ClusterArn: platform.cluster.clusterArn,
-    ApiRepositoryUri: platform.api.repositoryUri,
-    WorkerRepositoryUri: platform.worker.repositoryUri,
-    ApplicationSubnetIds: ctx.network.vpc.privateSubnets.map((s) => s.subnetId).join(","),
-    MigrationSecurityGroupId: ctx.network.worker.securityGroupId,
-    ApiTaskDefinitionArn: api.task.taskDefinitionArn,
-    WorkerTaskDefinitionArn: worker.task.taskDefinitionArn,
-    TargetGroupArn: targetGroup.targetGroupArn,
+  const { targetGroup, loadBalancer } = addIngress(ctx, apiService);
+  serviceOutputs(ctx, { migration, repository, credential, release, api, worker, targetGroup });
+  return {
+    api,
+    worker,
+    migration,
+    repository,
+    apiService,
+    workerService,
+    targetGroup,
+    loadBalancer,
   };
-  for (const [id, value] of Object.entries(outputs)) new CfnOutput(stack, id, { value });
-  return { api, worker, migration, repository, apiService, workerService };
 }
 function service(
   ctx: RuntimeContext,
@@ -146,7 +137,7 @@ function addIngress(ctx: RuntimeContext, api: ecs.FargateService) {
   });
   new CfnOutput(stack, "LoadBalancerDnsName", { value: loadBalancer.loadBalancerDnsName });
   new CfnOutput(stack, "ApiEndpoint", { value: `https://${settings.hostname}` });
-  return targetGroup;
+  return { targetGroup, loadBalancer };
 }
 
 function migrationRepository({ platform }: RuntimeContext) {
@@ -155,4 +146,43 @@ function migrationRepository({ platform }: RuntimeContext) {
     imageScanOnPush: true,
     removalPolicy: RemovalPolicy.RETAIN,
   });
+}
+
+function administrator({ stack, data }: RuntimeContext) {
+  return secrets.Secret.fromSecretAttributes(stack, "DatabaseAdministrator", {
+    secretCompleteArn: data.database.attrMasterUserSecretSecretArn,
+    encryptionKey: data.key,
+  });
+}
+
+function serviceOutputs(
+  ctx: RuntimeContext,
+  values: {
+    migration: ReturnType<typeof createTask>;
+    repository: ecr.Repository;
+    credential: secrets.Secret;
+    release: ReturnType<typeof createReleaseParameters>;
+    api: ReturnType<typeof createTask>;
+    worker: ReturnType<typeof createTask>;
+    targetGroup: elb.ApplicationTargetGroup;
+  },
+) {
+  const { stack, platform } = ctx;
+  const { migration, repository, credential, release, api, worker, targetGroup } = values;
+  new CfnOutput(stack, "MigrationTaskDefinitionArn", { value: migration.task.taskDefinitionArn });
+  new CfnOutput(stack, "MigrationRepositoryUri", { value: repository.repositoryUri });
+  new CfnOutput(stack, "RuntimeCredentialSecretArn", { value: credential.secretArn });
+  new CfnOutput(stack, "ReleaseSha", { value: release.app });
+  const outputs = {
+    MigrationRelease: release.migration,
+    ClusterArn: platform.cluster.clusterArn,
+    ApiRepositoryUri: platform.api.repositoryUri,
+    WorkerRepositoryUri: platform.worker.repositoryUri,
+    ApplicationSubnetIds: ctx.network.vpc.privateSubnets.map((s) => s.subnetId).join(","),
+    MigrationSecurityGroupId: ctx.network.worker.securityGroupId,
+    ApiTaskDefinitionArn: api.task.taskDefinitionArn,
+    WorkerTaskDefinitionArn: worker.task.taskDefinitionArn,
+    TargetGroupArn: targetGroup.targetGroupArn,
+  };
+  for (const [id, value] of Object.entries(outputs)) new CfnOutput(stack, id, { value });
 }

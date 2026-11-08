@@ -20,3 +20,5 @@ Each record captures one decision, its context and its consequences. Records are
 | [0015](0015-aws-pilot-foundation.md) | Offline AWS pilot foundation | Accepted |
 | [0016](0016-aws-runtime-preparation.md) | Separate runtime and migration privileges | Accepted |
 | [0017](0017-manual-aws-releases.md) | Manual, migration-first AWS releases | Accepted |
+
+[0018: Operational monitoring](0018-operational-monitoring.md)

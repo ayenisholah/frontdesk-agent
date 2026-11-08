@@ -1,5 +1,9 @@
 type Event = "dispatch_failed" | "retention_failed" | "queue_failed";
-export function createWorkerHealth(probe: () => Promise<unknown>, signal: AbortSignal) {
+export function createWorkerHealth(
+  probe: () => Promise<unknown>,
+  signal: AbortSignal,
+  report: (event: Event) => void,
+) {
   const counters: Record<Event, number> = {
     dispatch_failed: 0,
     retention_failed: 0,
@@ -7,6 +11,7 @@ export function createWorkerHealth(probe: () => Promise<unknown>, signal: AbortS
   };
   return {
     report(event: Event) {
+      report(event);
       counters[event] = Math.min(Number.MAX_SAFE_INTEGER, counters[event] + 1);
     },
     async respond(method: string | undefined, url: string | undefined) {

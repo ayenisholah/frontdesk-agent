@@ -4,7 +4,11 @@ import { createDependencies } from "./checks.js";
 import { loadConfig } from "./config.js";
 import { createShutdown } from "./lifecycle.js";
 import { createLogger } from "./log.js";
-import { resolveRuntimeEnvironment } from "@frontdesk/runtime";
+import {
+  createTelemetry,
+  parseTelemetryConfig,
+  resolveRuntimeEnvironment,
+} from "@frontdesk/runtime";
 
 const config = loadConfig(resolveRuntimeEnvironment(process.env));
 const log = createLogger(config.LOG_LEVEL, {
@@ -13,6 +17,16 @@ const log = createLogger(config.LOG_LEVEL, {
 });
 const deps = createDependencies(config.DATABASE_URL, config.REDIS_URL);
 const db = createDb(config.DATABASE_URL);
+const telemetryConfig = parseTelemetryConfig(process.env);
+const telemetry =
+  telemetryConfig &&
+  createTelemetry({
+    ...telemetryConfig,
+    service: "api",
+    clock: Date.now,
+    output: (record) => process.stdout.write(JSON.stringify(record) + "\n"),
+    probe: () => Promise.all(Object.values(deps.checks).map((check) => check())),
+  });
 const app = createApp({
   checks: deps.checks,
   log,
@@ -37,6 +51,7 @@ server.requestTimeout = 30_000;
 const shutdown = createShutdown({
   stopServer: (done) => server.close(done),
   closeDependencies: async () => {
+    telemetry?.stop();
     await Promise.all([deps.close(), db.$disconnect()]);
   },
   log,

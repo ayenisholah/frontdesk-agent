@@ -78,3 +78,5 @@ backups, encryption, generated credentials and retention policies. A planted
 infrastructure-to-runtime import also verified the dependency boundary fails.
 
 Deployment modules are included in the infrastructure coverage gate. Fake SDK adapters exercise publication retries, migration failures/timeouts, stack transitions, ECS/ALB health, rollback and recovery; a real local HTTP server verifies readiness parsing. The two thin deployment CLIs have subprocess failure checks. Workflow tests reject planted untrusted triggers, missing enable gates and unprotected environments; IAM tests reject planted wildcard role passing. Strict synthesis also covers the optional deployment-access stack.
+
+Monitoring tests cover bounded probes, stuck-probe non-overlap, failure deltas, output failure, shutdown and fixed dimensions. CDK tests assert disabled notifications, encryption, metric policies and the monitoring assembly.

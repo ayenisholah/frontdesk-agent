@@ -31,3 +31,4 @@ export function resolveRuntimeEnvironment(env: Record<string, string | undefined
   redis.password = config.REDIS_PASSWORD;
   return { ...env, DATABASE_URL: database.toString(), REDIS_URL: redis.toString() };
 }
+export { createTelemetry, parseTelemetryConfig } from "./telemetry";
