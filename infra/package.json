@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "synth": "cdk synth --strict --no-lookups --quiet && INFRA_CONFIG=config/runtime.example.json cdk synth --strict --no-lookups --quiet --output cdk.out/runtime && INFRA_CONFIG=config/deployment.example.json cdk synth --strict --no-lookups --quiet --output cdk.out/deployment"
+    "synth": "cdk synth --strict --no-lookups --quiet && INFRA_CONFIG=config/runtime.example.json cdk synth --strict --no-lookups --quiet --output cdk.out/runtime && INFRA_CONFIG=config/deployment.example.json cdk synth --strict --no-lookups --quiet --output cdk.out/deployment && INFRA_CONFIG=config/monitoring.example.json cdk synth --strict --no-lookups --quiet --output cdk.out/monitoring"
   },
   "dependencies": {
     "@aws-sdk/client-cloudformation": "^3.1164.0",

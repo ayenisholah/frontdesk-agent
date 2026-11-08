@@ -45,3 +45,7 @@ The prepared workflow requires a verified main-branch commit, production approva
 ## Review
 
 Update this document in any pull request that adds a trust boundary, tool, webhook or data store.
+
+## Operational telemetry
+
+Prepared monitoring emits only fixed service/stage dimensions and numeric health or failure values. It excludes tenant identifiers and raw dependency errors. Notification recipients remain private activation configuration. The encrypted SNS topic restricts CloudWatch publication to this account; the application release role cannot modify monitoring infrastructure.

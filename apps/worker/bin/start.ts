@@ -1,5 +1,9 @@
 import { createServer } from "node:http";
-import { resolveRuntimeEnvironment } from "@frontdesk/runtime";
+import {
+  createTelemetry,
+  parseTelemetryConfig,
+  resolveRuntimeEnvironment,
+} from "@frontdesk/runtime";
 import { createBedrockClient, parseAgentConfig } from "@frontdesk/agent";
 import { createWhatsAppSender } from "@frontdesk/channels";
 import {
@@ -26,14 +30,19 @@ function main() {
   const config = settings.inbound ? parseAgentConfig(process.env) : undefined;
   const db = createDb(settings.database);
   const controller = new AbortController();
+  const telemetry = workerTelemetry(db, () => queues.ping());
   const queues = createQueues({
     url: settings.redis,
     prefix: settings.prefix,
     report: () => health.report("queue_failed"),
   });
-  const health = createWorkerHealth(async () => {
-    await Promise.all([db.$queryRaw`SELECT 1`, queues.ping()]);
-  }, controller.signal);
+  const health = createWorkerHealth(
+    async () => {
+      await Promise.all([db.$queryRaw`SELECT 1`, queues.ping()]);
+    },
+    controller.signal,
+    (event) => telemetry?.report(event),
+  );
   const sweep = connectProcessing({ settings, config, db, controller, queues, health });
   const runtime = createRuntime({
     report: (event) => health.report(event),
@@ -56,6 +65,7 @@ function main() {
   });
   server.listen(settings.port, "0.0.0.0");
   const stop = () => {
+    telemetry?.stop();
     controller.abort();
     server.close();
     setTimeout(() => process.exit(1), 30_000).unref();
@@ -125,3 +135,19 @@ Promise.resolve()
     console.error(JSON.stringify({ event: "worker_start_failed" }));
     process.exit(1);
   });
+
+function workerTelemetry(db: ReturnType<typeof createDb>, ping: () => Promise<unknown>) {
+  const telemetryConfig = parseTelemetryConfig(process.env);
+  const telemetry =
+    telemetryConfig &&
+    createTelemetry({
+      ...telemetryConfig,
+      service: "worker",
+      clock: Date.now,
+      output: (record) => process.stdout.write(JSON.stringify(record) + "\n"),
+      probe: async () => {
+        await Promise.all([db.$queryRaw`SELECT 1`, ping()]);
+      },
+    });
+  return telemetry;
+}

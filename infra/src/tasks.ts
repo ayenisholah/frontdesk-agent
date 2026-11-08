@@ -66,6 +66,8 @@ export function createTask(ctx: RuntimeContext, options: Options) {
 function environment({ config, data }: RuntimeContext, name: Options["name"], releaseSha: string) {
   return {
     CLOUD_RUNTIME: "true",
+    TELEMETRY_ENABLED: String(Boolean(config.monitoring) && name !== "migrate"),
+    TELEMETRY_STAGE: config.stage,
     NODE_ENV: "production",
     AWS_REGION: config.region,
     NODE_EXTRA_CA_CERTS: "/app/certs/rds-eu-west-1.crt",
