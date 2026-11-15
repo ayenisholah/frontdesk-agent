@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-bedrock-runtime": "^3.1163.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1167.0",
     "zod": "^4.6.7",
     "@frontdesk/core": "0.1.0"
   }
